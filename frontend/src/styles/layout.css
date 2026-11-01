@@ -1,0 +1,414 @@
+/* ---------------------------------------------------------------- app shell */
+
+.app {
+  height: 100dvh;
+  display: grid;
+  grid-template-columns: var(--rail-w) minmax(0, 1fr) auto;
+  grid-template-rows: var(--header-h) minmax(0, 1fr);
+  grid-template-areas:
+    "rail header header"
+    "rail main inspector";
+}
+
+.rail {
+  grid-area: rail;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: 14px 8px;
+  background: color-mix(in srgb, var(--surface) 70%, transparent);
+  border-right: 1px solid var(--border);
+  backdrop-filter: blur(10px);
+}
+
+.rail-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-decoration: none;
+  color: var(--text);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+.logo {
+  width: 38px;
+  height: 38px;
+  filter: drop-shadow(0 4px 14px color-mix(in srgb, var(--accent) 55%, transparent));
+}
+
+.rail-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+.rail-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 10px 4px 8px;
+  border-radius: var(--radius);
+  color: var(--text-3);
+  text-decoration: none;
+  font-size: 11px;
+  font-weight: 600;
+  transition: background 0.15s, color 0.15s;
+}
+.rail-item:hover {
+  background: var(--surface-3);
+  color: var(--text);
+}
+.rail-item[aria-current="page"] {
+  color: var(--accent-text);
+  background: color-mix(in srgb, var(--accent) 16%, transparent);
+}
+.rail-item[aria-current="page"]::before {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: 14px;
+  bottom: 14px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--accent-grad);
+}
+
+/* ---------------------------------------------------------------- header */
+
+.topbar {
+  grid-area: header;
+  position: relative;
+  z-index: 50; /* popovers must paint above the cards in <main> */
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+  padding: 0 16px 0 20px;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface) 55%, transparent);
+  backdrop-filter: blur(10px);
+}
+.topbar-title {
+  min-width: 0;
+  margin-right: 4px;
+}
+.topbar-title h1 {
+  font-size: 17px;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+}
+.topbar-title p {
+  font-size: 12px;
+  color: var(--text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.topbar-spacer {
+  flex: 1;
+  min-width: 0;
+}
+.topbar .btn-icon {
+  position: relative;
+  flex: none;
+}
+
+.chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  overflow: hidden;
+}
+.chips .chip {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+
+.count-dot {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 17px;
+  height: 17px;
+  padding: 0 4px;
+  border-radius: 9px;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 17px;
+  text-align: center;
+}
+.key-dot {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--ok);
+  box-shadow: 0 0 0 2px var(--surface);
+}
+.key-dot.warn {
+  background: var(--warn);
+}
+
+.menu-anchor {
+  position: relative;
+  flex: none;
+}
+.menu-anchor > .popover {
+  top: calc(100% + 10px);
+  left: 0;
+  width: 340px;
+}
+.menu-anchor:last-of-type > .popover,
+.topbar-spacer ~ .menu-anchor > .popover {
+  left: auto;
+  right: 0;
+}
+
+.health-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 32px;
+  padding: 0 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid var(--border-strong);
+  background: var(--surface-2);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text);
+  white-space: nowrap;
+}
+.health-pill:hover {
+  background: var(--surface-hover);
+}
+.health-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--warn);
+  box-shadow: 0 0 0 0 color-mix(in srgb, var(--warn) 60%, transparent);
+  animation: pulse 1.6s ease-out infinite;
+}
+.health-pill.ok .health-dot {
+  background: var(--ok);
+  --pulse: color-mix(in srgb, var(--ok) 55%, transparent);
+}
+.health-pill.down .health-dot {
+  background: var(--err);
+  animation: none;
+}
+.health-pill.checking .health-dot {
+  --pulse: color-mix(in srgb, var(--warn) 55%, transparent);
+}
+.health-ver {
+  color: var(--text-3);
+  font-weight: 500;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+}
+@keyframes pulse {
+  0% {
+    box-shadow: 0 0 0 0 var(--pulse, transparent);
+  }
+  70%,
+  100% {
+    box-shadow: 0 0 0 7px transparent;
+  }
+}
+
+.pop-title {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-3);
+  margin-bottom: 8px;
+}
+.kv {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 5px 14px;
+  margin: 0;
+  font-size: 13px;
+}
+.kv dt {
+  color: var(--text-3);
+}
+.kv dd {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  overflow-wrap: anywhere;
+}
+.muted-note {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-3);
+}
+.pop-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 12px;
+}
+.reveal {
+  position: absolute;
+  right: 4px;
+}
+
+.segmented {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+}
+.segmented button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 30px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text-2);
+  font-size: 12.5px;
+  font-weight: 600;
+}
+.segmented button:hover {
+  background: var(--surface-3);
+}
+.segmented button.on {
+  background: color-mix(in srgb, var(--accent) 22%, var(--surface-3));
+  color: var(--accent-text);
+}
+
+/* ---------------------------------------------------------------- main area */
+
+.main {
+  grid-area: main;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.view {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 20px 20px;
+  gap: 14px;
+  overflow: hidden;
+}
+.view-scroll {
+  overflow-y: auto;
+}
+
+/* ---------------------------------------------------------------- responsive */
+
+/* Header is progressively simplified before it would need to scroll. */
+@media (max-width: 1500px) {
+  .chips .chip:nth-child(n + 4) {
+    display: none;
+  }
+}
+@media (max-width: 1280px) {
+  .chips .chip:nth-child(n + 3) {
+    display: none;
+  }
+  .topbar-title p {
+    display: none;
+  }
+}
+@media (max-width: 1060px) {
+  .chips {
+    display: none;
+  }
+}
+
+/* Phone: bottom tab bar, full-width content, popovers span the screen. */
+@media (max-width: 720px) {
+  .app {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: var(--header-h) minmax(0, 1fr) auto;
+    grid-template-areas:
+      "header"
+      "main"
+      "rail";
+  }
+  .topbar {
+    padding: 0 10px 0 14px;
+    gap: 8px;
+  }
+  .topbar .btn-icon {
+    width: 34px;
+  }
+  .health-ver {
+    display: none;
+  }
+  .rail {
+    flex-direction: row;
+    justify-content: center;
+    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    gap: 0;
+    border-right: 0;
+    border-top: 1px solid var(--border);
+  }
+  .rail-brand {
+    display: none;
+  }
+  .rail-list {
+    flex-direction: row;
+    justify-content: space-around;
+  }
+  .rail-list li {
+    flex: 1;
+  }
+  .rail-item {
+    padding: 7px 4px 5px;
+  }
+  .rail-item[aria-current="page"]::before {
+    left: 28%;
+    right: 28%;
+    top: -7px;
+    bottom: auto;
+    width: auto;
+    height: 3px;
+    border-radius: 0 0 3px 3px;
+  }
+  .view {
+    padding: 12px 12px 12px;
+  }
+  .menu-anchor {
+    position: static;
+  }
+  .menu-anchor > .popover {
+    position: fixed;
+    left: 10px !important;
+    right: 10px !important;
+    top: calc(var(--header-h) + 8px);
+    width: auto;
+    max-width: none;
+  }
+}

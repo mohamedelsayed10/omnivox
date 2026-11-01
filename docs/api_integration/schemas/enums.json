@@ -1,0 +1,59 @@
+{
+  "error_codes": [
+    "external_service_error",
+    "graph_error",
+    "http_error",
+    "internal_error",
+    "invalid_input",
+    "llm_error",
+    "llm_rate_limited",
+    "llm_timeout",
+    "method_not_allowed",
+    "not_found",
+    "payload_too_large",
+    "service_not_configured",
+    "unauthorized",
+    "validation_error"
+  ],
+  "graph_memory_backends": [
+    "memory",
+    "sqlite"
+  ],
+  "sse_events": [
+    "token",
+    "node",
+    "tool",
+    "final",
+    "error"
+  ],
+  "stt_providers": [
+    "elevenlabs",
+    "openai"
+  ],
+  "trace_sources": [
+    "session",
+    "vad",
+    "stt",
+    "eot",
+    "graph",
+    "tool",
+    "llm",
+    "tts",
+    "latency",
+    "error"
+  ],
+  "trace_topic": "omnivox.trace",
+  "tracing_providers": [
+    "langsmith",
+    "none"
+  ],
+  "tts_providers": [
+    "elevenlabs",
+    "openai"
+  ],
+  "turn_detectors": [
+    "audio",
+    "stt",
+    "vad"
+  ]
+}

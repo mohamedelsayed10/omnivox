@@ -1,0 +1,21 @@
+# Rendered with envsubst limited to: SERVICE_NAME INSTALL_DIR RUN_USER
+[Unit]
+Description=${SERVICE_NAME} voice agent worker (LiveKit)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=${RUN_USER}
+WorkingDirectory=${INSTALL_DIR}
+EnvironmentFile=${INSTALL_DIR}/.env
+ExecStart=${INSTALL_DIR}/.venv/bin/python -m src.voice.worker start
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=${INSTALL_DIR}/files
+
+[Install]
+WantedBy=multi-user.target

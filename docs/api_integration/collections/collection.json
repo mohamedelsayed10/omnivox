@@ -1,0 +1,322 @@
+{
+  "info": {
+    "description": "Voice agent API. Set base_url, and api_key when API_KEYS is set.",
+    "name": "OmniVox API",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health",
+      "request": {
+        "description": "Liveness. Makes no external calls.",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "type": "text",
+            "value": "{{api_key}}"
+          }
+        ],
+        "method": "GET",
+        "url": {
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "health"
+          ],
+          "raw": "{{base_url}}/health"
+        }
+      }
+    },
+    {
+      "name": "Info",
+      "request": {
+        "description": "Models and switches the service runs with.",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "type": "text",
+            "value": "{{api_key}}"
+          }
+        ],
+        "method": "GET",
+        "url": {
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "info"
+          ],
+          "raw": "{{base_url}}/api/v1/info"
+        }
+      }
+    },
+    {
+      "name": "Create LiveKit token",
+      "request": {
+        "body": {
+          "mode": "raw",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          },
+          "raw": "{\n  \"identity\": \"demo-user\"\n}"
+        },
+        "description": "Join token for the browser. A new room makes LiveKit dispatch the voice agent.",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "type": "text",
+            "value": "{{api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "type": "text",
+            "value": "application/json"
+          }
+        ],
+        "method": "POST",
+        "url": {
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "livekit",
+            "token"
+          ],
+          "raw": "{{base_url}}/api/v1/livekit/token"
+        }
+      }
+    },
+    {
+      "name": "Chat (invoke)",
+      "request": {
+        "body": {
+          "mode": "raw",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          },
+          "raw": "{\n  \"session_id\": \"demo\",\n  \"message\": \"What is the capital of France?\"\n}"
+        },
+        "description": "Run one message through the agent graph and return the answer.",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "type": "text",
+            "value": "{{api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "type": "text",
+            "value": "application/json"
+          }
+        ],
+        "method": "POST",
+        "url": {
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "agent",
+            "invoke"
+          ],
+          "raw": "{{base_url}}/api/v1/agent/invoke"
+        }
+      }
+    },
+    {
+      "name": "Chat (stream, SSE)",
+      "request": {
+        "body": {
+          "mode": "raw",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          },
+          "raw": "{\n  \"session_id\": \"demo\",\n  \"message\": \"Search the web for today's top headline.\"\n}"
+        },
+        "description": "Server-sent events: node, tool, token, then final or error.",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "type": "text",
+            "value": "{{api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "type": "text",
+            "value": "application/json"
+          }
+        ],
+        "method": "POST",
+        "url": {
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "agent",
+            "stream"
+          ],
+          "raw": "{{base_url}}/api/v1/agent/stream"
+        }
+      }
+    },
+    {
+      "name": "Upload document",
+      "request": {
+        "body": {
+          "formdata": [
+            {
+              "key": "file",
+              "src": [],
+              "type": "file"
+            },
+            {
+              "disabled": true,
+              "key": "source",
+              "type": "text",
+              "value": "pricing.md"
+            }
+          ],
+          "mode": "formdata"
+        },
+        "description": "Index a .txt, .md or .pdf file. Uploading the same name again replaces it.",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "type": "text",
+            "value": "{{api_key}}"
+          }
+        ],
+        "method": "POST",
+        "url": {
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "knowledge",
+            "documents"
+          ],
+          "raw": "{{base_url}}/api/v1/knowledge/documents"
+        }
+      }
+    },
+    {
+      "name": "List documents",
+      "request": {
+        "description": "Indexed documents.",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "type": "text",
+            "value": "{{api_key}}"
+          }
+        ],
+        "method": "GET",
+        "url": {
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "knowledge",
+            "documents"
+          ],
+          "raw": "{{base_url}}/api/v1/knowledge/documents"
+        }
+      }
+    },
+    {
+      "name": "Delete document",
+      "request": {
+        "description": "Remove a document and its chunks.",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "type": "text",
+            "value": "{{api_key}}"
+          }
+        ],
+        "method": "DELETE",
+        "url": {
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "knowledge",
+            "documents",
+            "pricing.md"
+          ],
+          "raw": "{{base_url}}/api/v1/knowledge/documents/pricing.md"
+        }
+      }
+    },
+    {
+      "name": "Search knowledge base",
+      "request": {
+        "body": {
+          "mode": "raw",
+          "options": {
+            "raw": {
+              "language": "json"
+            }
+          },
+          "raw": "{\n  \"query\": \"What does the pricing plan cost?\",\n  \"top_k\": 4\n}"
+        },
+        "description": "Passages closest to a query.",
+        "header": [
+          {
+            "key": "X-API-Key",
+            "type": "text",
+            "value": "{{api_key}}"
+          },
+          {
+            "key": "Content-Type",
+            "type": "text",
+            "value": "application/json"
+          }
+        ],
+        "method": "POST",
+        "url": {
+          "host": [
+            "{{base_url}}"
+          ],
+          "path": [
+            "api",
+            "v1",
+            "knowledge",
+            "search"
+          ],
+          "raw": "{{base_url}}/api/v1/knowledge/search"
+        }
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8100"
+    },
+    {
+      "key": "api_key",
+      "value": ""
+    }
+  ]
+}

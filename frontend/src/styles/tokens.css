@@ -1,0 +1,155 @@
+/*
+ * Design tokens. Dark is the default; light applies for [data-theme="light"],
+ * and for an unset data-theme when the OS prefers light. The app sets
+ * data-theme itself (see ThemeProvider / the inline script in index.html).
+ */
+:root {
+  color-scheme: dark;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, "JetBrains Mono", "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+
+  --radius-xs: 6px;
+  --radius-sm: 9px;
+  --radius: 13px;
+  --radius-lg: 20px;
+  --radius-pill: 999px;
+
+  --rail-w: 76px;
+  --header-h: 60px;
+
+  /* surfaces */
+  --bg: #090b11;
+  --bg-glow-a: rgba(124, 108, 255, 0.16);
+  --bg-glow-b: rgba(34, 211, 238, 0.08);
+  --surface: #10131b;
+  --surface-2: #161a25;
+  --surface-3: #1d2230;
+  --surface-hover: #212738;
+  --overlay: rgba(4, 5, 10, 0.62);
+  --border: #232938;
+  --border-strong: #333b52;
+
+  /* text */
+  --text: #eceff7;
+  --text-2: #b0b8cc;
+  --text-3: #7d869d;
+
+  /* brand + status */
+  --accent: #8b7bff;
+  --accent-2: #36d4ee;
+  --accent-text: #b9afff;
+  --on-accent: #0b0a1a;
+  --ok: #34d399;
+  --warn: #fbbf24;
+  --err: #f87171;
+  --info: #60a5fa;
+
+  --accent-grad: linear-gradient(135deg, #8b7bff 0%, #5b8cff 55%, #36d4ee 100%);
+
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-2: 0 12px 32px -8px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
+
+  /* Inspector source colours (badge text + tint) */
+  --src-session: #94a3b8;
+  --src-vad: #a78bfa;
+  --src-stt: #38bdf8;
+  --src-eot: #fbbf24;
+  --src-graph: #34d399;
+  --src-tool: #fb923c;
+  --src-llm: #f472b6;
+  --src-tts: #2dd4bf;
+  --src-latency: #a3e635;
+  --src-error: #f87171;
+  --src-other: #9ca3af;
+
+  /* waterfall stages */
+  --stage-eot: var(--src-eot);
+  --stage-llm: var(--src-llm);
+  --stage-tts: var(--src-tts);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --bg: #f3f4f9;
+  --bg-glow-a: rgba(124, 108, 255, 0.14);
+  --bg-glow-b: rgba(34, 211, 238, 0.1);
+  --surface: #ffffff;
+  --surface-2: #f6f7fb;
+  --surface-3: #eceef6;
+  --surface-hover: #e6e9f4;
+  --overlay: rgba(20, 24, 40, 0.38);
+  --border: #dfe2ee;
+  --border-strong: #c6cbdd;
+
+  --text: #151826;
+  --text-2: #444b64;
+  --text-3: #6a7290;
+
+  --accent: #5b47f0;
+  --accent-2: #0891b2;
+  --accent-text: #4a37d6;
+  --on-accent: #ffffff;
+  --ok: #059669;
+  --warn: #b45309;
+  --err: #dc2626;
+  --info: #2563eb;
+
+  --accent-grad: linear-gradient(135deg, #6b57f5 0%, #4a73f0 55%, #0aa5c5 100%);
+
+  --shadow-1: 0 1px 2px rgba(20, 24, 40, 0.08);
+  --shadow-2: 0 14px 34px -10px rgba(30, 36, 70, 0.28), 0 2px 6px rgba(30, 36, 70, 0.08);
+
+  --src-session: #475569;
+  --src-vad: #6d28d9;
+  --src-stt: #0369a1;
+  --src-eot: #a16207;
+  --src-graph: #047857;
+  --src-tool: #c2410c;
+  --src-llm: #be185d;
+  --src-tts: #0f766e;
+  --src-latency: #4d7c0f;
+  --src-error: #b91c1c;
+  --src-other: #4b5563;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    color-scheme: light;
+
+    --bg: #f3f4f9;
+    --bg-glow-a: rgba(124, 108, 255, 0.14);
+    --bg-glow-b: rgba(34, 211, 238, 0.1);
+    --surface: #ffffff;
+    --surface-2: #f6f7fb;
+    --surface-3: #eceef6;
+    --surface-hover: #e6e9f4;
+    --overlay: rgba(20, 24, 40, 0.38);
+    --border: #dfe2ee;
+    --border-strong: #c6cbdd;
+    --text: #151826;
+    --text-2: #444b64;
+    --text-3: #6a7290;
+    --accent: #5b47f0;
+    --accent-2: #0891b2;
+    --accent-text: #4a37d6;
+    --on-accent: #ffffff;
+    --ok: #059669;
+    --warn: #b45309;
+    --err: #dc2626;
+    --info: #2563eb;
+    --src-session: #475569;
+    --src-vad: #6d28d9;
+    --src-stt: #0369a1;
+    --src-eot: #a16207;
+    --src-graph: #047857;
+    --src-tool: #c2410c;
+    --src-llm: #be185d;
+    --src-tts: #0f766e;
+    --src-latency: #4d7c0f;
+    --src-error: #b91c1c;
+    --src-other: #4b5563;
+  }
+}

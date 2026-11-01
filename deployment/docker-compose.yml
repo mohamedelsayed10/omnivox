@@ -1,0 +1,146 @@
+# Profiles:
+#   app    LiveKit server + Qdrant + API + voice agent worker
+#   gui    everything in `app` plus the web GUI (nginx serving frontend/dist and proxying /api)
+#   infra  LiveKit server + Qdrant only, for hosts that run the API and the worker under systemd
+# Run from the repo root so ${VARS} come from .env:
+#   docker compose --env-file .env -f deployment/docker-compose.yml --profile gui up -d --build
+# Compose-only variables (read by Compose, not by the app): QDRANT_HOST_PORT, QDRANT_DOCKER_URL,
+# LIVEKIT_NODE_IP, FRONTEND_PORT. See docs/deployment.md.
+name: omnivox
+
+x-app-env: &app-env
+  LIVEKIT_URL: ws://livekit:7880
+  QDRANT_URL: ${QDRANT_DOCKER_URL:-http://qdrant:6333/}
+  LOG_DIR: /app/files/logs
+  GRAPH_MEMORY_URL: /app/files/graph_memory.sqlite
+
+x-app-service: &app-service
+  build:
+    context: ..
+    dockerfile: deployment/Dockerfile
+    args:
+      PORT: ${PORT:-8100}
+  image: omnivox:latest
+  env_file: ../.env
+  environment: *app-env
+  volumes:
+    - ../files:/app/files
+  restart: unless-stopped
+
+services:
+  livekit:
+    image: livekit/livekit-server:v1.13.11
+    profiles: ["app", "gui", "infra"]
+    restart: unless-stopped
+    ports:
+      - "7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+    # Also the network of the agent (see below), so the agent can reach host.docker.internal.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      # LIVEKIT_NODE_IP is the address clients use to reach media. 127.0.0.1 suits a browser on
+      # this machine; set the host LAN/public IP when browsers connect from another machine.
+      LIVEKIT_CONFIG: |
+        port: 7880
+        rtc:
+          tcp_port: 7881
+          udp_port: 7882
+          use_external_ip: false
+          node_ip: ${LIVEKIT_NODE_IP:-127.0.0.1}
+        keys:
+          ${LIVEKIT_API_KEY}: ${LIVEKIT_API_SECRET}
+
+  qdrant:
+    image: qdrant/qdrant:v1.20.0
+    profiles: ["app", "gui", "infra"]
+    restart: unless-stopped
+    ports:
+      # Loopback only. Change the host side with QDRANT_HOST_PORT when 6333 is already taken.
+      - "127.0.0.1:${QDRANT_HOST_PORT:-6333}:6333"
+    volumes:
+      - qdrant_data:/qdrant/storage
+    healthcheck:
+      test: ["CMD", "bash", "-c", ":> /dev/tcp/127.0.0.1/6333"]
+      interval: 10s
+      timeout: 3s
+      start_period: 10s
+      retries: 5
+
+  api:
+    <<: *app-service
+    profiles: ["app", "gui"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "${PORT:-8100}:${PORT:-8100}"
+    depends_on:
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/health' % os.environ['PORT'], timeout=4)"
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+  agent:
+    <<: *app-service
+    profiles: ["app", "gui"]
+    command: ["python", "-m", "src.voice.worker", "start"]
+    # The worker shares LiveKit's network namespace. LiveKit hands every client the media address
+    # LIVEKIT_NODE_IP (127.0.0.1 by default), and from inside this namespace that address is the
+    # LiveKit server itself, so media works with no extra configuration. `restart: true` below
+    # recreates the worker whenever `livekit` is recreated, which a shared namespace requires.
+    network_mode: "service:livekit"
+    environment:
+      <<: *app-env
+      LIVEKIT_URL: ws://127.0.0.1:7880
+    depends_on:
+      livekit:
+        condition: service_started
+        restart: true
+      qdrant:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD
+        - python
+        - -c
+        - "import os, urllib.request; urllib.request.urlopen('http://127.0.0.1:%s/' % os.environ.get('WORKER_PORT', '8181'), timeout=4)"
+      interval: 30s
+      timeout: 5s
+      start_period: 40s
+      retries: 3
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: deployment/Dockerfile.frontend
+      args:
+        VITE_API_BASE_URL: ""
+    image: omnivox-frontend:latest
+    profiles: ["gui"]
+    restart: unless-stopped
+    environment:
+      SERVICE_NAME: omnivox
+      SERVER_NAME: "_"
+      API_UPSTREAM: api:${PORT:-8100}
+      FRONTEND_ROOT: /usr/share/nginx/html
+      REQUEST_TIMEOUT: ${REQUEST_TIMEOUT:-60}
+      CLIENT_MAX_BODY_SIZE: 12m
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    # nginx resolves `api` once at start, so it must restart whenever the API container is recreated.
+    depends_on:
+      api:
+        condition: service_started
+        restart: true
+
+volumes:
+  qdrant_data:

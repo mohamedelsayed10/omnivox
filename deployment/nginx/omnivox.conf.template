@@ -1,0 +1,66 @@
+# Rendered with envsubst limited to: SERVICE_NAME SERVER_NAME API_UPSTREAM FRONTEND_ROOT
+# REQUEST_TIMEOUT CLIENT_MAX_BODY_SIZE. nginx variables such as $host are left untouched.
+#
+# Three ways to reach the same app:
+#   host mode  http://SERVER_NAME/api/...  and /health
+#   path mode  http://SERVER_NAME/SERVICE_NAME/...   (set ROOT_PATH=/SERVICE_NAME in .env)
+#   GUI mode   http://SERVER_NAME/         serves FRONTEND_ROOT (the built React app)
+
+# limit_req_zone $binary_remote_addr zone=${SERVICE_NAME}_limit:10m rate=20r/s;
+
+# Upgrade requests keep their Upgrade header; plain requests send an empty Connection so the
+# upstream keepalive pool is used. The variable is per service so several sites can coexist.
+map $http_upgrade $${SERVICE_NAME}_connection {
+    default upgrade;
+    ""      "";
+}
+
+upstream ${SERVICE_NAME}_api {
+    server ${API_UPSTREAM};
+    keepalive 16;
+}
+
+server {
+    listen 80;
+    server_name ${SERVER_NAME};
+
+    client_max_body_size ${CLIENT_MAX_BODY_SIZE};
+
+    # Server-sent events and WebSocket upgrades must not be buffered.
+    proxy_http_version 1.1;
+    proxy_buffering off;
+    proxy_cache off;
+    proxy_read_timeout ${REQUEST_TIMEOUT}s;
+    proxy_send_timeout ${REQUEST_TIMEOUT}s;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+    proxy_set_header X-Forwarded-Proto $scheme;
+    proxy_set_header X-Request-ID $request_id;
+    proxy_set_header Upgrade $http_upgrade;
+    proxy_set_header Connection $${SERVICE_NAME}_connection;
+
+    location /api/ {
+        # limit_req zone=${SERVICE_NAME}_limit burst=40 nodelay;
+        proxy_pass http://${SERVICE_NAME}_api;
+    }
+
+    location = /health {
+        proxy_pass http://${SERVICE_NAME}_api;
+    }
+
+    location /${SERVICE_NAME}/ {
+        # limit_req zone=${SERVICE_NAME}_limit burst=40 nodelay;
+        proxy_pass http://${SERVICE_NAME}_api/;
+    }
+
+    location / {
+        root ${FRONTEND_ROOT};
+        try_files $uri $uri/ /index.html;
+    }
+
+    # TLS (certbot): uncomment, then run `certbot --nginx -d ${SERVER_NAME}`.
+    # listen 443 ssl;
+    # ssl_certificate     /etc/letsencrypt/live/${SERVER_NAME}/fullchain.pem;
+    # ssl_certificate_key /etc/letsencrypt/live/${SERVER_NAME}/privkey.pem;
+}

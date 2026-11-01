@@ -1,0 +1,21 @@
+# Rendered with envsubst limited to: SERVICE_NAME INSTALL_DIR RUN_USER
+# Runs the whole Docker stack (LiveKit, Qdrant, API, agent, GUI) as one systemd service.
+# RUN_USER must be allowed to use Docker (member of the docker group).
+[Unit]
+Description=${SERVICE_NAME} Docker stack (LiveKit, Qdrant, API, agent, GUI)
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+User=${RUN_USER}
+WorkingDirectory=${INSTALL_DIR}
+ExecStart=/usr/bin/docker compose --env-file .env -f deployment/docker-compose.yml --profile gui up -d --build
+ExecStop=/usr/bin/docker compose --env-file .env -f deployment/docker-compose.yml --profile gui down
+TimeoutStartSec=900
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target
