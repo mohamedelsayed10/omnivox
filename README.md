@@ -67,21 +67,46 @@ No `make` (Windows)? See [docs/installation.md](docs/installation.md).
 ## Project structure
 
 ```text
-config/        settings (Pydantic) and logging
-src/app.py     FastAPI app factory and entry point
-src/api/       routes, schemas, middleware, error handlers, dependency wiring
-src/services/  chat, knowledge base and LiveKit token use cases
-src/graph/     LangGraph state, nodes, tools, memory, tracing, streaming
-src/ai_models/ the only code that builds model clients (LLM, embeddings, STT, TTS, VAD, turn)
-src/rag/       loading, chunking and retrieval over Qdrant
-src/clients/   Qdrant and web search wrappers
-src/voice/     LiveKit worker, session and Inspector
-src/prompts/   all prompt text
-src/utils/     pure helpers and domain errors
-frontend/      React + TypeScript GUI
-deployment/    Dockerfiles, compose, nginx and systemd templates
-tests/         offline test suite
-docs/          study guide and reference pages
+omnivox/
+├── pyproject.toml                       dependencies (uv), ruff and pytest config
+├── requirements.txt                     pinned runtime dependencies (Docker, make deploy-app)
+├── .env  .env.example                   secrets (git-ignored) and every variable, documented
+├── Makefile  LICENSE  README.md
+│
+├── config/
+│   ├── settings.py                      Pydantic Settings and the cached get_settings()
+│   └── logger.py                        colored console, rotating file, request id, secret redaction
+│
+├── src/
+│   ├── app.py                           create_app() and the `python -m src.app` entry point
+│   ├── composition.py                   wiring shared by the API and the voice worker
+│   ├── api/
+│   │   ├── deps.py                      API composition root: container, auth, Depends
+│   │   ├── middleware.py                request id, access log, CORS, body size limit
+│   │   ├── error_handlers.py            domain errors to the JSON error body
+│   │   ├── routes/                      health, info, livekit, knowledge, graph/agent
+│   │   └── schemas/                     requests (bounded, extra forbidden), responses, ErrorResponse
+│   ├── services/                        chat, knowledge and LiveKit token use cases, framework-free
+│   ├── graph/                           LangGraph agent: builder, state, memory, streaming, trace
+│   │   ├── nodes/                       agent, tools
+│   │   └── tools/                       knowledge_search, web_search
+│   ├── ai_models/                       the only code that builds model clients (LLM, embeddings, STT, TTS, VAD, turn, tracing)
+│   ├── rag/                             document loaders and the retriever
+│   ├── clients/                         Qdrant and web search (ddgs) wrappers
+│   ├── voice/                           LiveKit worker, session, speech filter, Inspector
+│   ├── prompts/                         all prompt text and PROMPT_VERSION
+│   └── utils/                           domain errors, data models, text helpers, trace events
+│
+├── tests/                               mirrors src/; conftest.py (settings, client) and fakes.py (scripted model)
+├── frontend/                            React + TypeScript console (Vite)
+│   └── src/                             views, components, inspector, state, hooks, api, styles
+├── deployment/
+│   ├── Dockerfile  Dockerfile.frontend  API and worker image, GUI image
+│   ├── docker-compose.yml               profiles app, gui and infra
+│   ├── nginx/                           site template
+│   └── systemd/                         API, voice agent and Docker stack units
+├── docs/                                reference pages, blocks/ study guide, api_integration/ Postman and schemas
+└── files/logs/                          runtime logs (git-ignored)
 ```
 
 ## Documentation
