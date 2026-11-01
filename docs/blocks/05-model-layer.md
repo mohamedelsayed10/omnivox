@@ -33,7 +33,6 @@ flowchart LR
 
 Every wrapper extends `AIModel`: it must describe itself (`info`: kind, provider, model name, harmless details; never a secret) and it gets `traced()`, a context manager that logs how long a call took and, for the LLM, token counts. The API's `/info` endpoint and the Inspector's first event are built from these descriptions.
 
-<!-- excerpt: src/ai_models/base.py::AIModel.traced -->
 ```python
 # src/ai_models/base.py (AIModel.traced)
 async def traced(self, operation: str, **metadata: Any) -> AsyncIterator[dict[str, Any]]:
@@ -56,7 +55,6 @@ async def traced(self, operation: str, **metadata: Any) -> AsyncIterator[dict[st
 
 Provider exceptions are sorted into three kinds so the rest of the code never imports `openai` or `httpx`:
 
-<!-- excerpt: src/ai_models/base.py::classify_provider_error -->
 ```python
 # src/ai_models/base.py
 def classify_provider_error(exc: BaseException) -> ErrorKind:
@@ -74,7 +72,6 @@ def classify_provider_error(exc: BaseException) -> ErrorKind:
 
 It wraps LangChain's `ChatOpenAI`, which speaks the OpenAI chat protocol, so **any compatible endpoint works** (Gemini, OpenRouter, vLLM, OpenAI) by changing `OPENAI_BASE_URL`, `OPENAI_MODEL` and the key.
 
-<!-- excerpt: src/ai_models/llm.py::build_chat_model -->
 ```python
 # src/ai_models/llm.py
 def build_chat_model(settings: Settings) -> ChatOpenAI:
@@ -112,7 +109,6 @@ Points worth studying in that function:
 
 `ainvoke` is the one method graph nodes use. It enforces the input limit, binds tools, converts failures, and checks the answer:
 
-<!-- excerpt: src/ai_models/llm.py::LLMService.ainvoke -->
 ```python
 # src/ai_models/llm.py (LLMService.ainvoke)
 async def ainvoke(
@@ -141,7 +137,6 @@ async def ainvoke(
         return result
 ```
 
-<!-- excerpt: src/ai_models/llm.py::LLMService._check_output -->
 ```python
 # src/ai_models/llm.py (LLMService._check_output)
 def _check_output(result: AIMessage) -> None:
@@ -161,7 +156,6 @@ An answer that is empty, or blocked by the provider's content filter, is an `LLM
 
 Open-source chat templates (Qwen, Gemma) read an `enable_thinking` flag, and OpenRouter has its own `reasoning` switch. One setting controls both, sent like `extra_body={"chat_template_kwargs": {"enable_thinking": False}, "reasoning": {"enabled": False}}` (the second key only on `openrouter.ai`):
 
-<!-- excerpt: src/ai_models/llm.py::thinking_extra_body -->
 ```python
 # src/ai_models/llm.py
 def thinking_extra_body(settings: Settings) -> dict[str, Any] | None:
@@ -189,7 +183,6 @@ Why the second key exists: with `nvidia/nemotron-3.5-lightning:free` on OpenRout
 
 Gemini 3 returns a `thought_signature` with every tool call and answers HTTP 400 if the next request replays that tool call without it. `langchain-openai` throws the field away. `GeminiChatOpenAI` (chosen automatically for `generativelanguage.googleapis.com` URLs) remembers each signature as it streams and puts it back:
 
-<!-- excerpt: src/ai_models/llm.py::GeminiChatOpenAI._get_request_payload -->
 ```python
 # src/ai_models/llm.py (GeminiChatOpenAI._get_request_payload)
 def _get_request_payload(self, input_: Any, *, stop: list[str] | None = None, **kwargs: Any):
@@ -207,7 +200,6 @@ If the id is unknown (after a restart, for example) it sends Google's documented
 
 Turns text into vectors for the knowledge base ([block 08](08-knowledge-base-rag.md)). It batches (Cohere accepts at most 96 texts per request), limits concurrent requests with a semaphore, keeps result order, and finds the **vector size by probing** once, because Cohere's compatibility endpoint rejects a `dimensions` parameter and the size must not be hard-coded.
 
-<!-- excerpt: src/ai_models/embeddings.py::EmbeddingService.aembed_documents -->
 ```python
 # src/ai_models/embeddings.py (EmbeddingService.aembed_documents)
 async def aembed_documents(self, texts: list[str]) -> list[list[float]]:
@@ -221,7 +213,6 @@ async def aembed_documents(self, texts: list[str]) -> list[list[float]]:
     return [vector for batch in results for vector in batch]
 ```
 
-<!-- excerpt: src/ai_models/embeddings.py::EmbeddingService.dimension -->
 ```python
 # src/ai_models/embeddings.py (EmbeddingService.dimension)
 async def dimension(self) -> int:
@@ -237,7 +228,6 @@ A missing `EMBEDDING_API_KEY` raises `ConfigurationError` only when embeddings a
 
 These do not call models themselves. They **build the LiveKit plugin object** that `AgentSession` will drive ([block 10](10-voice-worker.md)), choosing by provider:
 
-<!-- excerpt: src/ai_models/asr.py::SpeechToText.build -->
 ```python
 # src/ai_models/asr.py (SpeechToText.build)
 def build(self) -> stt.STT:
@@ -272,7 +262,6 @@ def build(self) -> stt.STT:
 
 `VoiceActivityDetector.load()` loads the Silero ONNX model (blocking, so the worker calls it once in `prewarm`). `TurnDetection.options()` turns settings into LiveKit's turn handling options:
 
-<!-- excerpt: src/ai_models/turn.py::TurnDetection.options -->
 ```python
 # src/ai_models/turn.py (TurnDetection.options)
 def options(self) -> TurnHandlingOptions:
@@ -301,7 +290,6 @@ def options(self) -> TurnHandlingOptions:
 
 `Tracing` returns LangSmith callbacks for a run and records extra runs, and does nothing when `TRACING_PROVIDER=none`. Tracing must never break a request, so every failure is logged and swallowed:
 
-<!-- excerpt: src/ai_models/tracing.py::Tracing.get_callbacks -->
 ```python
 # src/ai_models/tracing.py (Tracing.get_callbacks)
 def get_callbacks(self, metadata: dict[str, Any] | None = None) -> list[BaseCallbackHandler]:
@@ -330,10 +318,10 @@ def get_callbacks(self, metadata: dict[str, Any] | None = None) -> list[BaseCall
 ## Try it
 
 ```bash
-uv run python scripts/smoke_models.py
+uv run pytest tests/ai_models -q
 ```
 
-It calls every real provider once and prints PASS, FAIL or SKIP per component (LLM tool round trip, embeddings with the dimension, Qdrant, VAD and turn model, TTS then STT on the spoken audio). Read the FAIL lines: they show how each provider's error was converted.
+These tests build every model wrapper with injected fakes and raise provider errors on purpose. Open `tests/ai_models/test_llm.py` to see how each provider error is converted into a domain error.
 
 ## Modify it
 

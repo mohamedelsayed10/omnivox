@@ -1,10 +1,10 @@
 # 13 Testing
 
-**What this block is:** `tests/` and `scripts/`: how the project proves itself without a network, a key or a microphone, and how it checks the real providers when you do have them. **Assumes:** nothing, but the examples refer to [04](04-services.md), [06](06-agent-graph.md) and [11](11-inspector.md).
+**What this block is:** `tests/`: how the project proves itself without a network, a key or a microphone. **Assumes:** nothing, but the examples refer to [04](04-services.md), [06](06-agent-graph.md) and [11](11-inspector.md).
 
 ## 1. The idea in one paragraph
 
-Real model calls are slow, cost money, change from day to day and need secrets. So the test suite never makes one. Instead each boundary has a **fake** with the same interface, the code is built through **injection** so a fake can be passed in, and the fakes are scripted so a test controls exactly what the "model" says. A second, separate kind of check (`scripts/smoke_models.py`) calls the real providers on demand.
+Real model calls are slow, cost money, change from day to day and need secrets. So the test suite never makes one. Instead each boundary has a **fake** with the same interface, the code is built through **injection** so a fake can be passed in, and the fakes are scripted so a test controls exactly what the "model" says.
 
 ```mermaid
 flowchart LR
@@ -12,7 +12,6 @@ flowchart LR
     fake --> code[[Real services and graph]]:::svc
     code --> mem[(In-memory Qdrant)]:::mem
     code --> client[FastAPI TestClient]:::api
-    live[smoke_models.py]:::dec --> real{{Real providers, real keys}}:::llm
     code -.-> fail([A failing assertion names the broken rule]):::err
 
     classDef io fill:#FAFAFA,stroke:#616161,color:#212121
@@ -31,7 +30,7 @@ Run everything with `make test` (about ten seconds); lint and format with `make 
 
 | Test folder | Covers | Typical technique |
 | --- | --- | --- |
-| `tests/config/` | settings, logging | build `Settings(_env_file=None, ...)`; assert validation errors and redaction |
+| `tests/config/` | settings (including `.env.example` parity), logging | build `Settings(_env_file=None, ...)`; assert validation errors and redaction |
 | `tests/utils/` | text helpers, trace events | plain function tests |
 | `tests/ai_models/` | LLM, embeddings, speech factories, tracing | injected fakes; provider errors raised on purpose |
 | `tests/clients/`, `tests/rag/` | Qdrant, web search, loaders, retriever | `QDRANT_URL=:memory:` |
@@ -39,13 +38,11 @@ Run everything with `make test` (about ten seconds); lint and format with `make 
 | `tests/services/` | chat, knowledge, LiveKit tokens | same, without HTTP |
 | `tests/api/` | routes, validation, every error row | `TestClient` over a container of fakes |
 | `tests/voice/` | Inspector, session helpers, speech filter | fake room and fake session |
-| `tests/test_docs.py`, `tests/test_generated_files.py` | documentation and generated files | drift tests (section 5) |
 
 ## 3. The environment: `conftest.py`
 
 Two jobs: make importing the app safe without secrets, and give every test a clean `Settings`.
 
-<!-- excerpt: tests/conftest.py::make_settings -->
 ```python
 # tests/conftest.py
 def make_settings(tmp_path: Path) -> Callable[..., Settings]:
@@ -74,7 +71,6 @@ Note `_env_file=None` (your real `.env` is ignored), `QDRANT_URL=":memory:"`, a 
 
 The API client fixture builds the real app with a **container factory** that returns fakes ([block 03](03-api-layer.md)):
 
-<!-- excerpt: tests/conftest.py::make_client -->
 ```python
 # tests/conftest.py
 def make_client(make_settings: Callable[..., Settings]) -> Iterator[Callable[..., TestClient]]:
@@ -108,7 +104,6 @@ def make_client(make_settings: Callable[..., Settings]) -> Iterator[Callable[...
 
 The test hands it a list of replies. Each call returns the next one, so a test can say "first the model asks for `web_search`, then it answers":
 
-<!-- excerpt: tests/fakes.py::ScriptedChatModel._next -->
 ```python
 # tests/fakes.py (ScriptedChatModel._next)
 def _next(self, messages: list[BaseMessage]) -> AIMessage:
@@ -128,7 +123,6 @@ It also streams (word by word, with tool-call chunks and usage), so streaming co
 
 Words are hashed into a 256-dimension vector and normalized, so texts that share words are close:
 
-<!-- excerpt: tests/fakes.py::DeterministicEmbeddings._vector -->
 ```python
 # tests/fakes.py (DeterministicEmbeddings._vector)
 def _vector(self, text: str) -> list[float]:
@@ -147,40 +141,19 @@ Common words (`the`, `is`) are ignored; with a small vector size they dominated 
 
 `build_runtime` and `build_container` assemble the real services around the fakes, so an API test exercises route, service, graph, tools and retriever together, with only the outside world replaced.
 
-## 5. Tests that keep the docs honest
+## 5. A test that keeps the configuration honest
 
-| Test | Fails when |
+`tests/config/test_settings.py` checks `.env.example` against the code:
+
+| Check | Fails when |
 | --- | --- |
-| settings parity | a `Settings` field is missing from `.env.example`, or `.env.example` has a key `Settings` ignores, or its lines stop being plain `KEY=VALUE` |
-| `docs/config.md` coverage | a setting is not in the config table |
-| routes in `docs/api.md` | an endpoint exists that the API page does not mention |
-| Makefile targets in `docs/deployment.md` | a target is undocumented |
-| generated files | `docs/api_integration/*` differs from what `scripts/export_schemas.py` produces |
-| relative links | any Markdown link points at a missing file |
-| diagrams | a flowchart exceeds 15 nodes, lacks the house classes, has no dashed error path, or uses a reserved word as a node id |
-| **code excerpts in these study pages** | a code block in `docs/blocks/` is no longer a verbatim copy of its source; `scripts/refresh_block_excerpts.py` rewrites them in place |
-| paths in prose | a backticked path to a source file, folder or doc no longer exists |
+| parity | a `Settings` field is missing from `.env.example`, or `.env.example` has a key `Settings` ignores |
+| portable lines | a line is not a plain `KEY=VALUE` (no quotes, no `export`, no trailing comment), which Pydantic, Docker Compose and systemd would parse differently |
+| loads | the file, with only the secrets added, no longer produces working settings |
 
-The last two are what make these pages trustworthy: change a function that a page quotes and the test tells you to refresh the page.
+Nothing checks the documentation pages against the code. When you change a setting, a route, a Makefile target or a function that a study page quotes, update the page by hand; if a page and the code disagree, the code is right.
 
-One trap to know about: `ruff format` also formats Python code blocks inside Markdown, and a dedented method excerpt would be re-wrapped differently from its source. That is why `docs` is listed under `extend-exclude` in `pyproject.toml`: running `make format` never rewrites the excerpts.
-
-## 6. Checking the real providers
-
-`scripts/smoke_models.py` calls each real provider once and prints one line each:
-
-```text
-PASS  llm         model=... tool round trip ok
-PASS  embeddings  model=embed-v5.0-fast dimension=2048
-PASS  qdrant      reachable, 0 collection(s)
-PASS  vad+turn    silero loaded, turn_detection=TurnDetector
-PASS  tts         model=eleven_v4_turbo 3.3s of audio at 22050 Hz in 0.8s
-PASS  stt         model=scribe_v2_realtime transcript matched
-```
-
-TTS output is fed to STT, so a pass means the speech models agree with each other. A missing key is `SKIP`, not `FAIL`. Provider quota errors (`429`, `402`) show up here, which is how the free-tier limits were discovered.
-
-## 7. Testing the voice path without ElevenLabs
+## 6. Testing the voice path without ElevenLabs
 
 The voice worker was verified end to end with a technique worth knowing, even though the scripts are throwaway:
 
@@ -190,7 +163,7 @@ The voice worker was verified end to end with a technique worth knowing, even th
 
 That harness found three real bugs that unit tests could not: tool results read aloud, the second call failing on a closed event loop, and a missing end-of-turn figure. The lesson: unit tests prove the pieces, a scripted call proves the wiring.
 
-## 8. Writing a test for a new feature
+## 7. Writing a test for a new feature
 
 1. Put it in the mirrored folder: a service in `src/services/` is tested in `tests/services/`.
 2. Use `settings` or `make_settings(...)`; never read `.env`.
@@ -212,7 +185,6 @@ Open `test_errors.py`: one parametrized test walks every row of the error table,
 - Why does `_next` copy the scripted reply?
 - Which fixture guarantees your real `.env` cannot change a test result?
 - A teammate renames a setting. Which tests fail, and in what order would you fix the repo?
-- What does a `SKIP` in the smoke test mean, and why is it not a failure?
 
 ## Read next
 

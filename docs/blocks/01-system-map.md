@@ -66,7 +66,7 @@ flowchart TB
     classDef err fill:#FFEBEE,stroke:#C62828,color:#B71C1C
 ```
 
-`src/voice/` sits beside `src/api/` as a second entry point. Both are "composition roots": the only places that create the real objects and hand them to everything else. Tests replace those objects with fakes ([block 13](13-testing.md)). The exact rules are in `AGENTS.md`.
+`src/voice/` sits beside `src/api/` as a second entry point. Both are "composition roots": the only places that create the real objects and hand them to everything else. Tests replace those objects with fakes ([block 13](13-testing.md)). The rule is that imports point downward only: routes call services, services call the graph and the model layer, never the reverse.
 
 ## 3. Walkthrough A: one text message
 
@@ -156,13 +156,13 @@ src/rag/        knowledge base logic                     block 08
 src/clients/    Qdrant and web search wrappers           block 08
 src/voice/      the LiveKit worker and Inspector         blocks 10 and 11
 frontend/       the web app                              block 12
-tests/ scripts/ offline tests and live checks            block 13
+tests/          offline tests                            block 13
 deployment/     Docker, nginx, systemd; Makefile         block 14
 ```
 
 ## Try it
 
-1. Start only the API (`make run`) and call `GET /health`, then `POST /api/v1/agent/invoke` with `examples/curl.sh`. You have just exercised Walkthrough A without a browser.
+1. Start only the API (`make run`) and call `GET /health`, then `POST /api/v1/agent/invoke` with `curl -X POST localhost:8100/api/v1/agent/invoke -H "Content-Type: application/json" -d '{"session_id":"s1","message":"What is the capital of France?"}'`. You have just exercised Walkthrough A without a browser.
 2. Open `files/logs/omnivox.log` and find the lines of that request: they all carry the same request id.
 
 ## Check yourself

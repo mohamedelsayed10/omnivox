@@ -4,7 +4,7 @@
 
 ## 1. The problem
 
-If business rules live in route functions they can only be tested through HTTP, and they get copied when a second entry point appears (the voice worker needed the same agent). A service is a plain class: validate, call the layer below, return plain data, raise domain errors. No `Request`, no `HTTPException`, no FastAPI import. `AGENTS.md` forbids it, and reviewers hold to that.
+If business rules live in route functions they can only be tested through HTTP, and they get copied when a second entry point appears (the voice worker needed the same agent). A service is a plain class: validate, call the layer below, return plain data, raise domain errors. No `Request`, no `HTTPException`, no FastAPI import. The layering rule (imports point downward only) forbids it, and reviewers hold to that.
 
 ```mermaid
 flowchart LR
@@ -35,7 +35,6 @@ Responsibilities, in order:
 3. **Bound concurrency** with a semaphore sized `MAX_CONCURRENT_RUNS`, so a burst of requests cannot start unlimited model calls.
 4. **Run** the graph and translate failures into domain errors.
 
-<!-- excerpt: src/services/chat_service.py::ChatService.invoke -->
 ```python
 # src/services/chat_service.py (ChatService.invoke)
 async def invoke(self, session_id: str, message: str, request_id: str) -> ChatResult:
@@ -64,7 +63,6 @@ Notes on the details:
 - `GraphRecursionError` (the step limit) becomes `GraphExecutionError`; `OmniVoxError` (for example `LLMError` raised inside a node) passes through untouched so it keeps its specific status code; anything else is wrapped, which hides raw exception text from clients.
 - `tools_used` is computed from messages **after the latest human message only**, otherwise a tool used three turns ago would be reported again:
 
-<!-- excerpt: src/services/chat_service.py::ChatService._tools_used -->
 ```python
 # src/services/chat_service.py (ChatService._tools_used)
 def _tools_used(messages: list) -> list[str]:
@@ -89,7 +87,6 @@ It guards the door of the knowledge base ([block 08](08-knowledge-base-rag.md) h
 - **Source name** sanitizing: the name is what users see and what the delete route takes, so path parts and control characters are stripped and the length is capped.
 - **Text extraction in a thread** (`asyncio.to_thread`) because PDF parsing is CPU-bound and would block the event loop for every other request.
 
-<!-- excerpt: src/services/knowledge_service.py::KnowledgeService._source_name -->
 ```python
 # src/services/knowledge_service.py (KnowledgeService._source_name)
 def _source_name(raw: str) -> str:
@@ -99,7 +96,6 @@ def _source_name(raw: str) -> str:
     return name[:SOURCE_MAX_CHARS]
 ```
 
-<!-- excerpt: src/services/knowledge_service.py::KnowledgeService.ingest -->
 ```python
 # src/services/knowledge_service.py (KnowledgeService.ingest)
 async def ingest(self, filename: str, data: bytes, source: str | None = None) -> IngestResult:
@@ -119,7 +115,6 @@ async def ingest(self, filename: str, data: bytes, source: str | None = None) ->
 
 A LiveKit server only lets in clients holding a **signed token** (a JWT). The service signs one with the API key and secret, naming the identity and the one room it may join. A **new room name** is what makes LiveKit dispatch the voice agent ([block 09](09-livekit.md)), so by default each call gets a fresh `omnivox-<8 hex>` room.
 
-<!-- excerpt: src/services/livekit_service.py::LiveKitService.create_token -->
 ```python
 # src/services/livekit_service.py (LiveKitService.create_token)
 def create_token(self, identity: str | None = None, room: str | None = None) -> JoinToken:

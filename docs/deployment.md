@@ -20,7 +20,7 @@ make down              # the Qdrant volume is kept
 make docker-infra-up   # only LiveKit and Qdrant
 ```
 
-- One image (`deployment/Dockerfile`) runs both the API and the worker: multi-stage, `uv` copied from the pinned official image, `uv sync --frozen --no-dev`, non-root user, health check on `/health` using the standard library only. No secret is baked in: `.env` is passed with `env_file`.
+- One image (`deployment/Dockerfile`) runs both the API and the worker: multi-stage, `uv` copied from the pinned official image, dependencies installed from the pinned `requirements.txt`, non-root user, health check on `/health` using the standard library only. No secret is baked in: `.env` is passed with `env_file`.
 - The GUI image (`deployment/Dockerfile.frontend`) builds `frontend/` and serves it with nginx, rendering `deployment/nginx/omnivox.conf.template` from the container environment.
 - **Qdrant** is a container (`qdrant/qdrant:v1.20.0`) with the named volume `qdrant_data`, a health check, and a host port bound to `127.0.0.1:${QDRANT_HOST_PORT:-6333}`. The API and the worker wait for it to be healthy and reach it at `http://qdrant:6333/`. To use another Qdrant (for example one on your machine) set `QDRANT_DOCKER_URL=http://host.docker.internal:6333/`.
 - Optional compose-only overrides (read by Compose, not by the app; commented out in `.env.example`, listed in [config.md](config.md)): `QDRANT_HOST_PORT` (default `6333`), `QDRANT_DOCKER_URL`, `LIVEKIT_NODE_IP` (default `127.0.0.1`) and `FRONTEND_PORT` (default `8080`).
@@ -46,7 +46,7 @@ Two setups:
 - **Docker runs everything, systemd starts it at boot:** `make systemd-docker-install`, then `sudo systemctl status|restart|stop omnivox-docker`.
 - **Docker for the infrastructure, systemd for the Python processes:** `make docker-infra-up` (LiveKit and Qdrant), then `make deploy-app` or `make deploy-gui`; `make deploy-all` does all of it. `.env` needs `LIVEKIT_URL=ws://localhost:7880` and a `QDRANT_URL` that matches `QDRANT_HOST_PORT`.
 
-Prerequisite for the second setup: the repository is in `INSTALL_DIR` and `uv` is installed (`make deploy-app` runs `uv sync --frozen --no-dev`, which creates `.venv` there). Commands for each setup are in [running.md](running.md).
+Prerequisite for the second setup: the repository is in `INSTALL_DIR` and `uv` is installed (`make deploy-app` creates `.venv` there and installs the pinned `requirements.txt`). Commands for each setup are in [running.md](running.md).
 
 ## nginx
 
@@ -64,8 +64,8 @@ Variables `SERVICE_NAME` (from `APP_NAME`), `PORT`, `SERVER_NAME`, `INSTALL_DIR`
 
 | Group | Targets |
 | --- | --- |
-| Setup | `install`, `env`, `export-reqs`, `schemas` |
-| Development | `run`, `agent`, `agent-dev`, `dev`, `test`, `lint`, `format`, `check`, `smoke` |
+| Setup | `install`, `env`, `export-reqs` |
+| Development | `run`, `agent`, `agent-dev`, `dev`, `test`, `lint`, `format`, `check` |
 | Docker | `up`, `down`, `restart`, `docker-build`, `docker-up`, `docker-up-gui`, `docker-down`, `docker-logs`, `docker-ps`, `docker-infra-up`, `docker-infra-down` |
 | systemd | `systemd-install`, `systemd-start`, `systemd-stop`, `systemd-restart`, `systemd-status`, `systemd-logs`, `systemd-uninstall`, `systemd-docker-install`, `systemd-docker-uninstall` |
 | nginx | `nginx-install`, `nginx-test`, `nginx-remove` |

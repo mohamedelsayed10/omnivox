@@ -16,7 +16,7 @@
 ## Steps
 
 ```bash
-make install     # uv sync: creates .venv from uv.lock
+make install     # uv sync: creates .venv from pyproject.toml
 make env         # copies .env.example to .env (an existing .env is kept)
 ```
 
@@ -53,10 +53,12 @@ GNU make is usually missing on Windows. Every target is a thin wrapper, so run t
 | `make restart` | `docker compose --env-file .env -f deployment/docker-compose.yml --profile gui up -d --build --force-recreate` |
 | `make docker-infra-up` | `docker compose --env-file .env -f deployment/docker-compose.yml --profile infra up -d` |
 
-If you prefer pip: `make export-reqs` writes `requirements.txt` from `uv.lock` (`pip install -r requirements.txt`).
+If you prefer pip: `requirements.txt` pins the runtime dependencies (`pip install -r requirements.txt`); Docker and `make deploy-app` install from it. `make export-reqs` re-resolves and rewrites it from `pyproject.toml`.
 
 ## Verify
 
 ```bash
-uv run python scripts/smoke_models.py   # calls the real providers once; prints PASS, FAIL or SKIP per component
+make test                           # offline suite, needs no keys
+make run                            # then, in another terminal:
+curl http://localhost:8100/health   # {"status":"ok", ...}
 ```

@@ -8,9 +8,9 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never
 WORKDIR /app
-COPY pyproject.toml uv.lock .python-version ./
+COPY requirements.txt ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-project
+    uv venv /app/.venv && uv pip install --python /app/.venv/bin/python -r requirements.txt
 
 FROM python:3.12-slim AS runtime
 ARG PORT=8100

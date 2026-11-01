@@ -31,7 +31,6 @@ flowchart LR
 
 ## 2. The image: `deployment/Dockerfile`
 
-<!-- excerpt: deployment/Dockerfile:L1-30 -->
 ```text
 # deployment/Dockerfile
 # syntax=docker/dockerfile:1
@@ -44,9 +43,9 @@ ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
     UV_PYTHON_DOWNLOADS=never
 WORKDIR /app
-COPY pyproject.toml uv.lock .python-version ./
+COPY requirements.txt ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-project
+    uv venv /app/.venv && uv pip install --python /app/.venv/bin/python -r requirements.txt
 
 FROM python:3.12-slim AS runtime
 ARG PORT=8100
@@ -68,7 +67,7 @@ CMD ["python", "-m", "src.app"]
 
 What to notice:
 
-- **Multi-stage.** The first stage uses `uv` (copied from the official pinned image) to install dependencies from `uv.lock` with `--frozen` (the lock file is law; the build fails instead of resolving newer versions). Only the finished virtual environment is copied to the final image, so build tools never ship.
+- **Multi-stage.** The first stage uses `uv` (copied from the official pinned image) to install the pinned dependencies from `requirements.txt` into a virtual environment (exact versions, so a rebuild cannot silently pick up newer ones). Only the finished virtual environment is copied to the final image, so build tools never ship.
 - **One image, two programs.** The default command starts the API; the compose `agent` service overrides it to start the worker.
 - **Non-root user and no secrets inside.** The image contains code and dependencies only; `.env` is supplied at run time.
 - **A health check** that uses Python's standard library to call `/health` (slim images have no `curl`).
@@ -86,7 +85,6 @@ Compose has three **profiles**, so you start only what you need:
 
 The two YAML anchors at the top avoid repeating settings for the API and the agent:
 
-<!-- excerpt: deployment/docker-compose.yml:L9-28 -->
 ```yaml
 # deployment/docker-compose.yml
 name: omnivox
@@ -121,7 +119,6 @@ x-app-service: &app-service
 
 LiveKit tells every client which address to send media to (`node_ip`). A browser on your machine needs `127.0.0.1`, but from inside a separate worker container `127.0.0.1` is the container itself, so media never arrives. The fix is one line:
 
-<!-- excerpt: deployment/docker-compose.yml:L92-119 -->
 ```yaml
 # deployment/docker-compose.yml
 agent:
@@ -161,7 +158,6 @@ agent:
 
 On a real server nginx serves the GUI files and proxies the API. The file is a **template**: variables like `${SERVICE_NAME}` and `${API_UPSTREAM}` are filled in by `envsubst` with an explicit list of names, so nginx's own `$host` and `$uri` pass through untouched.
 
-<!-- excerpt: deployment/nginx/omnivox.conf.template:L11-21 -->
 ```text
 # deployment/nginx/omnivox.conf.template
 # Upgrade requests keep their Upgrade header; plain requests send an empty Connection so the
@@ -179,7 +175,6 @@ upstream ${SERVICE_NAME}_api {
 
 That `map` gives every request a `Connection` header: `upgrade` for WebSocket upgrades and empty for ordinary requests so the upstream keep-alive pool works. The variable name includes the service, so two sites can coexist.
 
-<!-- excerpt: deployment/nginx/omnivox.conf.template:L23-41 -->
 ```text
 # deployment/nginx/omnivox.conf.template
 server {
@@ -219,7 +214,6 @@ Three ways to reach the app through one site: `/api/` and `/health` (host mode),
 
 Each service is one small unit rendered from a template:
 
-<!-- excerpt: deployment/systemd/omnivox.service.template:L1-21 -->
 ```text
 # deployment/systemd/omnivox.service.template
 # Rendered with envsubst limited to: SERVICE_NAME INSTALL_DIR RUN_USER
@@ -260,7 +254,6 @@ The Docker unit needs `Requires=docker.service` and `After=docker.service`, a ge
 
 The Makefile is deliberately thin: each target is one or two commands you could type yourself (the Windows table in [installation.md](../installation.md) lists them). Its clever parts are small:
 
-<!-- excerpt: Makefile:L7-22 -->
 ```text
 # Makefile
 env_value = $(shell sed -n 's/^$(1)=//p' .env 2>/dev/null | tail -n 1)
@@ -285,9 +278,8 @@ NGINX_VARS := '$${SERVICE_NAME} $${SERVER_NAME} $${API_UPSTREAM} $${FRONTEND_ROO
 - Variables use `?=`, so `make deploy-gui SERVER_NAME=ai.example.com` overrides them.
 - **`SYSTEMD_VARS` and `NGINX_VARS`** are the exact lists handed to `envsubst`. Limiting the list is what protects nginx's `$host`.
 
-`make help` is generated from the `##` comments on each target line, so adding a target with a comment documents it automatically; `tests/test_docs.py` also insists every target appears in `docs/deployment.md`.
+`make help` is generated from the `##` comments on each target line, so adding a target with a comment documents it automatically. List a new target in `docs/deployment.md` as well.
 
-<!-- excerpt: Makefile:L32-33 -->
 ```text
 # Makefile
 help: ## Show this help

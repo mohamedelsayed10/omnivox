@@ -81,9 +81,9 @@ src/utils/     pure helpers and domain errors
 frontend/      React + TypeScript GUI
 deployment/    Dockerfiles, compose, nginx and systemd templates
 tests/         offline test suite
-docs/ examples/ scripts/
+docs/          study guide and reference pages
 ```
 
 ## Documentation
 
-[**Study guide, one page per block**](docs/blocks/README.md) · [Installation](docs/installation.md) · [Running](docs/running.md) · [Configuration](docs/config.md) · [API](docs/api.md) · [Voice and Inspector](docs/voice.md) · [Graph](docs/graph.md) · [Models and tracing](docs/llm.md) · [Prompts](docs/prompts.md) · [Helpers](docs/utils.md) · [Features and assumptions](docs/features.md) · [Deployment](docs/deployment.md) · [GUI](docs/frontend.md) · [Examples](examples/) · [Postman collection](docs/api_integration/collections/collection.json)
+[**Study guide, one page per block**](docs/blocks/README.md) · [Installation](docs/installation.md) · [Running](docs/running.md) · [Configuration](docs/config.md) · [API](docs/api.md) · [Voice and Inspector](docs/voice.md) · [Graph](docs/graph.md) · [Models and tracing](docs/llm.md) · [Prompts](docs/prompts.md) · [Helpers](docs/utils.md) · [Features and assumptions](docs/features.md) · [Deployment](docs/deployment.md) · [GUI](docs/frontend.md) · [Postman collection](docs/api_integration/collections/collection.json)

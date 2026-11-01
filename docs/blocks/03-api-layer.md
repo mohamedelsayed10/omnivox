@@ -32,7 +32,6 @@ flowchart LR
 
 `create_app(settings, container_factory=build_container)` builds everything and returns a FastAPI app. Heavy work (creating clients, compiling the graph) happens in the **lifespan**, not at import time, and is undone on shutdown through an `AsyncExitStack`:
 
-<!-- excerpt: src/app.py::create_app -->
 ```python
 # src/app.py
 def create_app(
@@ -75,7 +74,6 @@ def create_app(
 
 `register_middleware` adds three layers. Starlette treats the **last added as the outermost**, so a request passes `RequestContextMiddleware`, then CORS, then the body-size limit, then the route:
 
-<!-- excerpt: src/api/middleware.py::register_middleware -->
 ```python
 # src/api/middleware.py
 def register_middleware(app: FastAPI, settings: Settings) -> None:
@@ -96,7 +94,6 @@ They are written as **pure ASGI** classes rather than `BaseHTTPMiddleware`, beca
 
 The outermost one assigns the request id and writes the access log:
 
-<!-- excerpt: src/api/middleware.py::RequestContextMiddleware.__call__ -->
 ```python
 # src/api/middleware.py (RequestContextMiddleware.__call__)
 async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
@@ -132,7 +129,6 @@ async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
 
 Services raise **domain errors** from `src/utils/exceptions.py` (`InvalidInputError`, `LLMTimeoutError`, ...). They know nothing about HTTP. The API maps each to a status and a stable `code`:
 
-<!-- excerpt: src/api/error_handlers.py::HTTP_STATUS_BY_ERROR -->
 ```python
 # src/api/error_handlers.py
 HTTP_STATUS_BY_ERROR: dict[type[OmniVoxError], int] = {
@@ -148,7 +144,6 @@ HTTP_STATUS_BY_ERROR: dict[type[OmniVoxError], int] = {
 }
 ```
 
-<!-- excerpt: src/api/error_handlers.py::status_for -->
 ```python
 # src/api/error_handlers.py
 def status_for(exc: OmniVoxError) -> int:
@@ -170,7 +165,6 @@ def status_for(exc: OmniVoxError) -> int:
 
 Every response, including 413 and 500, has the shape `{"error": {"code", "message", "request_id"}}` and an `X-Request-ID` header. The catch-all handler runs **outside** our middleware (Starlette's outermost error layer), so it cannot rely on the middleware to add the header: `error_response` adds it itself.
 
-<!-- excerpt: src/api/error_handlers.py::error_response -->
 ```python
 # src/api/error_handlers.py
 def error_response(
@@ -191,7 +185,6 @@ The rule that makes this safe: `str(exc)` goes to the log, `exc.public_message` 
 
 `build_container` is the API's composition root. It builds the shared runtime ([block 05](05-model-layer.md) and [08](08-knowledge-base-rag.md) objects), opens the checkpointer, compiles the graph and creates the three services:
 
-<!-- excerpt: src/api/deps.py::build_container -->
 ```python
 # src/api/deps.py
 async def build_container(settings: Settings, stack: AsyncExitStack) -> Container:
@@ -211,7 +204,6 @@ async def build_container(settings: Settings, stack: AsyncExitStack) -> Containe
 
 Routes never import `ai_models` or `graph`. They ask for a service with `Depends`, and `require_api_key` guards the whole `/api/v1` router (not `/health`):
 
-<!-- excerpt: src/api/deps.py::require_api_key -->
 ```python
 # src/api/deps.py
 async def require_api_key(
@@ -232,7 +224,6 @@ async def require_api_key(
 
 The streaming route shows the whole pattern: validate through the schema, call the service, wrap the result:
 
-<!-- excerpt: src/api/routes/graph/agent.py::stream -->
 ```python
 # src/api/routes/graph/agent.py
 async def stream(body: ChatRequest, request: Request, service: ChatDep) -> StreamingResponse:
@@ -271,7 +262,7 @@ The second call returns a 422 listing both problems and no echoed input. Then se
 
 ## Modify it
 
-To add an endpoint: schema in `src/api/schemas/`, service method in `src/services/`, a thin route in `src/api/routes/`, register the router in `src/app.py`, a test, then `make schemas` (the Postman collection and request schemas are generated; a test fails if they are stale).
+To add an endpoint: schema in `src/api/schemas/`, service method in `src/services/`, a thin route in `src/api/routes/`, register the router in `src/app.py`, a test, then update `docs/api.md` and the Postman collection and request schemas in `docs/api_integration/`.
 
 ## Check yourself
 

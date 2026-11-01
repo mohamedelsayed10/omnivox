@@ -48,7 +48,7 @@ Legend: stadium = client or response, rectangle = server or config, subroutine =
 | [10 Voice worker](10-voice-worker.md) | `src/voice/` | the pipeline of one call: VAD, STT, end of turn, graph, TTS, interruptions |
 | [11 Inspector](11-inspector.md) | `src/voice/inspector.py`, `src/graph/trace.py` | how internal steps become events, and how to add one |
 | [12 Frontend](12-frontend.md) | `frontend/` | provider tree, API client, SSE parser, LiveKit hooks, the Inspector store |
-| [13 Testing](13-testing.md) | `tests/`, `scripts/` | offline fakes, fixtures, drift tests, live checks |
+| [13 Testing](13-testing.md) | `tests/` | offline fakes, fixtures, settings checks, scripted calls |
 | [14 Infrastructure](14-infrastructure.md) | `deployment/`, `Makefile` | Docker image, compose, nginx, systemd, make |
 
 ## How to study
@@ -56,7 +56,7 @@ Legend: stadium = client or response, rectangle = server or config, subroutine =
 1. **Follow one request.** Read 01, then 03, 04, 06 and 05 in that order: a text message travels exactly that path.
 2. **Follow one call.** Read 09, 10 and 11: a voice turn travels that path. 12 shows what the browser does with it.
 3. **Break something on purpose.** Each page ends with a "Try it" and a "Check yourself" section. The exercises name the file to change and what you should see.
-4. **Trust the code, not the prose.** Every code excerpt in these pages is copied verbatim from the source, and `tests/test_docs.py` fails when one no longer matches. After you change code that a page quotes, run `uv run python scripts/refresh_block_excerpts.py`: it rewrites the excerpts in place and leaves the prose alone. Prose can lag; excerpts cannot.
+4. **Trust the code, not the prose.** The code excerpts in these pages were copied from the source when the pages were written, and nothing checks them afterwards. If a page and the code disagree, the code is right.
 
 ## Glossary
 

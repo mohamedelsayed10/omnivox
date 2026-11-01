@@ -33,7 +33,6 @@ flowchart LR
 4. A `model_validator` checks rules that involve several fields (for example `RAG_CHUNK_OVERLAP` must be smaller than `RAG_CHUNK_SIZE`).
 5. `get_settings()` is cached, so every module sees the same object.
 
-<!-- excerpt: config/settings.py::Settings._check_consistency -->
 ```python
 # config/settings.py (Settings._check_consistency)
 def _check_consistency(self) -> "Settings":
@@ -50,7 +49,6 @@ def _check_consistency(self) -> "Settings":
     return self
 ```
 
-<!-- excerpt: config/settings.py::get_settings -->
 ```python
 # config/settings.py
 def get_settings() -> Settings:
@@ -60,7 +58,6 @@ def get_settings() -> Settings:
 
 `SecretStr` hides the value in `repr()`, in `model_dump()` and in tracebacks; you must call `.get_secret_value()` to read it, which makes accidental printing a visible act. `Settings.secret_values()` collects every secret so the logger can mask them:
 
-<!-- excerpt: config/settings.py::Settings.secret_values -->
 ```python
 # config/settings.py (Settings.secret_values)
 def secret_values(self) -> list[str]:
@@ -90,7 +87,6 @@ def secret_values(self) -> list[str]:
 3. points uvicorn and LiveKit loggers at the same handlers and quiets the chatty ones (`httpx`, `openai`, `ddgs`, `qdrant_client`) to WARNING unless `LOG_LEVEL=DEBUG`;
 4. registers every secret value for masking.
 
-<!-- excerpt: config/logger.py::setup_logging -->
 ```python
 # config/logger.py
 def setup_logging(settings: Settings, *, exclusive: bool = False) -> None:
@@ -142,7 +138,6 @@ The line format is `timestamp | level | logger | request_id | message`. The requ
 
 A filter on a handler only sees the log message. A traceback is formatted later, so a key inside an exception message would slip through. The formatter masks the **final text**, tracebacks included:
 
-<!-- excerpt: config/logger.py::redact -->
 ```python
 # config/logger.py
 def redact(text: str) -> str:
@@ -154,7 +149,6 @@ def redact(text: str) -> str:
     return text
 ```
 
-<!-- excerpt: config/logger.py::SECRET_PATTERNS -->
 ```python
 # config/logger.py
 SECRET_PATTERNS = (
@@ -182,7 +176,7 @@ Two layers work together: exact secret values registered at startup, and regular
 ## 5. Rules of thumb
 
 - Above DEBUG, log **sizes and ids, never prompts, transcripts or documents**.
-- Add a setting in four places: `config/settings.py`, `.env.example` (with a comment line above it), `docs/config.md` (a generated table; `tests/test_docs.py` checks it), and use it through `settings`, never `os.environ`.
+- Add a setting in four places: `config/settings.py`, `.env.example` (with a comment line above it), `docs/config.md` (one table row per setting; `tests/config/test_settings.py` checks `.env.example` against `Settings`), and use it through `settings`, never `os.environ`.
 - In tests build settings with `Settings(_env_file=None, ...)` so your real `.env` cannot leak in ([block 13](13-testing.md)).
 
 ## Try it

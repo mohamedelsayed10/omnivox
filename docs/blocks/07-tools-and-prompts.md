@@ -40,7 +40,6 @@ Both are built by small factory functions that receive their dependency (`WebSea
 
 ### web_search
 
-<!-- excerpt: src/graph/tools/web_search.py::make_web_search_tool -->
 ```python
 # src/graph/tools/web_search.py
 def make_web_search_tool(client: WebSearchClient) -> BaseTool:
@@ -77,7 +76,6 @@ def make_web_search_tool(client: WebSearchClient) -> BaseTool:
 
 ### knowledge_search
 
-<!-- excerpt: src/graph/tools/knowledge_search.py::make_knowledge_search_tool -->
 ```python
 # src/graph/tools/knowledge_search.py
 def make_knowledge_search_tool(retriever: Retriever) -> BaseTool:
@@ -112,7 +110,6 @@ It returns `<passage source="name.md" score="0.33">...</passage>` blocks so the 
 
 ### The allow-list
 
-<!-- excerpt: src/graph/tools/__init__.py::build_tools -->
 ```python
 # src/graph/tools/__init__.py
 def build_tools(*, retriever: Retriever, web_search: WebSearchClient) -> list[BaseTool]:
@@ -129,7 +126,6 @@ Web pages and uploaded documents can contain text like "Ignore previous instruct
 1. **Delimiting.** Content is wrapped in tags the prompt names.
 2. **Escaping.** A page cannot close its own tag and open a fake instruction block, because angle brackets become look-alike characters:
 
-<!-- excerpt: src/utils/text.py::escape_tags -->
 ```python
 # src/utils/text.py
 def escape_tags(text: str) -> str:
@@ -145,7 +141,6 @@ None of these is a guarantee; they raise the cost of an attack. The real protect
 
 All prompt text lives in `src/prompts/agent.py`, nowhere else, and the module has a `PROMPT_VERSION`. The system prompt is a template with one variable (`current_datetime`) and a placeholder for the conversation:
 
-<!-- excerpt: src/prompts/agent.py::SYSTEM_TEMPLATE -->
 ```python
 # src/prompts/agent.py
 SYSTEM_TEMPLATE = """\
@@ -192,7 +187,6 @@ Why each part is there:
 
 The user's words are **never** formatted into the template. They arrive as messages, so a user cannot rewrite the system prompt by typing curly braces.
 
-<!-- excerpt: src/prompts/agent.py::AGENT_PROMPT -->
 ```python
 # src/prompts/agent.py
 AGENT_PROMPT = ChatPromptTemplate.from_messages(

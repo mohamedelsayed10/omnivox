@@ -36,7 +36,6 @@ flowchart LR
 
 Plain text and Markdown are decoded as UTF-8 (bad bytes are replaced, not fatal). PDFs go through `pypdf`. Anything else is rejected with a message listing the supported types. Text is normalized (line endings, repeated spaces, blank lines) and an empty result is an error ("no extractable text"), which catches scanned PDFs that contain only images.
 
-<!-- excerpt: src/rag/loaders.py::extract_text -->
 ```python
 # src/rag/loaders.py
 def extract_text(filename: str, data: bytes) -> str:
@@ -68,7 +67,6 @@ The algorithm, in plain words:
 3. Pack units greedily into a chunk until the next one would not fit.
 4. Start the next chunk with the **last `RAG_CHUNK_OVERLAP` characters** of the previous one, snapped to a word boundary.
 
-<!-- excerpt: src/utils/text.py::chunk_text -->
 ```python
 # src/utils/text.py
 def chunk_text(text: str, size: int, overlap: int) -> list[str]:
@@ -120,7 +118,6 @@ Documents and queries must be embedded by **the same model family**. If you chan
 
 Qdrant keeps each chunk as a **point**: an id, the vector, and a payload (`source`, `chunk_index`, `text`).
 
-<!-- excerpt: src/clients/qdrant.py::QdrantStore.ensure_collection -->
 ```python
 # src/clients/qdrant.py (QdrantStore.ensure_collection)
 async def ensure_collection(self, dimension: int) -> None:
@@ -150,7 +147,6 @@ async def ensure_collection(self, dimension: int) -> None:
 - A **keyword index on `source`** makes per-document operations fast.
 - Point ids are **deterministic** (UUID v5 of `source#index`), so uploading the same document twice overwrites chunks instead of duplicating them:
 
-<!-- excerpt: src/clients/qdrant.py::point_id -->
 ```python
 # src/clients/qdrant.py
 def point_id(source: str, chunk_index: int) -> str:
@@ -163,7 +159,6 @@ def point_id(source: str, chunk_index: int) -> str:
 
 ## 6. Ingest and search: `Retriever`
 
-<!-- excerpt: src/rag/retriever.py::Retriever.ingest -->
 ```python
 # src/rag/retriever.py (Retriever.ingest)
 async def ingest(self, source: str, text: str) -> IngestResult:
@@ -181,7 +176,6 @@ async def ingest(self, source: str, text: str) -> IngestResult:
 
 The order is chosen on purpose: **embed first, then delete the old version, then write the new one.** If the embedding service fails, the old copy of the document is still there. (`tests/rag/test_retriever.py::test_failed_embedding_keeps_the_old_document` proves it.)
 
-<!-- excerpt: src/rag/retriever.py::Retriever.search -->
 ```python
 # src/rag/retriever.py (Retriever.search)
 async def search(self, query: str, *, top_k: int | None = None) -> list[Passage]:
@@ -220,14 +214,14 @@ So scores look low in absolute terms; what matters is the gap. `RAG_SCORE_THRESH
 
 ```bash
 make run
-curl -s -X POST http://localhost:8100/api/v1/knowledge/documents -F "file=@examples/sample_document.md"
+curl -s -X POST http://localhost:8100/api/v1/knowledge/documents -F "file=@README.md"
 curl -s -X POST http://localhost:8100/api/v1/knowledge/search -H "Content-Type: application/json" -d "{\"query\":\"How long is the free trial?\",\"top_k\":2}"
 ```
 
 (Needs `EMBEDDING_API_KEY` and Qdrant at `QDRANT_URL`.) Compare the score of that query with the score of "how to bake bread". Then try the chunker alone:
 
 ```bash
-uv run python -c "from src.utils.text import chunk_text; [print(i, repr(c[:50]), len(c)) for i, c in enumerate(chunk_text(open('examples/sample_document.md').read() * 3, 300, 60))]"
+uv run python -c "from src.utils.text import chunk_text; [print(i, repr(c[:50]), len(c)) for i, c in enumerate(chunk_text(open('README.md').read() * 3, 300, 60))]"
 ```
 
 ## Modify it

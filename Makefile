@@ -21,7 +21,7 @@ NGINX_CONF := /etc/nginx/conf.d/$(SERVICE_NAME).conf
 SYSTEMD_VARS := '$${SERVICE_NAME} $${INSTALL_DIR} $${RUN_USER}'
 NGINX_VARS := '$${SERVICE_NAME} $${SERVER_NAME} $${API_UPSTREAM} $${FRONTEND_ROOT} $${REQUEST_TIMEOUT} $${CLIENT_MAX_BODY_SIZE}'
 
-.PHONY: help install env export-reqs schemas run agent agent-dev dev test lint format check smoke \
+.PHONY: help install env export-reqs run agent agent-dev dev test lint format check \
 	up down restart docker-build docker-up docker-up-gui docker-down docker-logs docker-ps \
 	docker-infra-up docker-infra-down \
 	systemd-install systemd-start systemd-stop systemd-restart systemd-status systemd-logs \
@@ -39,11 +39,8 @@ install: ## Install Python dependencies with uv
 env: ## Create .env from .env.example (keeps an existing .env)
 	@if [ -f .env ]; then echo ".env already exists, left untouched"; else cp .env.example .env && echo "created .env, fill in the secrets"; fi
 
-export-reqs: ## Write requirements.txt (pip fallback) from uv.lock
-	uv export --no-dev --no-hashes -o requirements.txt
-
-schemas: ## Regenerate docs/api_integration from the code
-	uv run python scripts/export_schemas.py
+export-reqs: ## Re-resolve and write the pinned requirements.txt (used by Docker and deploy-app)
+	uv pip compile pyproject.toml --no-annotate -o requirements.txt
 
 ##@ Development
 run: ## Run the API on PORT
@@ -70,9 +67,6 @@ format: ## Format and auto-fix with ruff
 	uv run ruff check . --fix
 
 check: lint test ## Lint plus tests (run before committing)
-
-smoke: ## Call the real providers once (needs real keys in .env)
-	uv run python scripts/smoke_models.py
 
 ##@ Docker
 up: docker-up-gui ## Run everything in Docker: LiveKit, Qdrant, API, agent and the GUI
@@ -167,8 +161,9 @@ frontend-dev: ## Run the GUI dev server on port 5173
 frontend-build: ## Build the GUI to frontend/dist
 	cd frontend && npm run build
 
-deploy-app: ## Install dependencies and (re)start API and agent under systemd
-	uv sync --frozen --no-dev
+deploy-app: ## Install the pinned dependencies and (re)start API and agent under systemd
+	uv venv --allow-existing
+	uv pip install -r requirements.txt
 	$(MAKE) systemd-install
 	$(MAKE) systemd-restart
 

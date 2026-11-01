@@ -42,7 +42,6 @@ This is the classic "ReAct" loop, written by hand so every step is visible: the 
 
 ### State
 
-<!-- excerpt: src/graph/state.py::AgentState -->
 ```python
 # src/graph/state.py
 class AgentState(TypedDict):
@@ -53,7 +52,6 @@ class AgentState(TypedDict):
 
 ### The router
 
-<!-- excerpt: src/graph/builder.py::route_after_agent -->
 ```python
 # src/graph/builder.py
 def route_after_agent(state: AgentState) -> Literal["tools", "__end__"]:
@@ -66,7 +64,6 @@ It reads only the last message: an `AIMessage` with `tool_calls` means "run tool
 
 ### The wiring
 
-<!-- excerpt: src/graph/builder.py::build_graph -->
 ```python
 # src/graph/builder.py
 def build_graph(
@@ -90,7 +87,6 @@ Notice `checkpointer` is a parameter: the **same function** builds the text-chat
 
 ### The agent node
 
-<!-- excerpt: src/graph/nodes/agent.py::make_agent_node.agent -->
 ```python
 # src/graph/nodes/agent.py (make_agent_node.agent)
 async def agent(state: AgentState, config: RunnableConfig) -> dict[str, list[AIMessage]]:
@@ -129,7 +125,6 @@ Step by step:
 
 ### The tools node
 
-<!-- excerpt: src/graph/nodes/tools.py::_run_call -->
 ```python
 # src/graph/nodes/tools.py
 async def _run_call(
@@ -154,7 +149,6 @@ It runs **every tool call of the last assistant message in parallel** (`asyncio.
 
 Every run gets a `RunnableConfig` that carries the conversation id, the step limit, tags and metadata for tracing, and the callbacks:
 
-<!-- excerpt: src/graph/trace.py::build_run_config -->
 ```python
 # src/graph/trace.py
 def build_run_config(
@@ -188,7 +182,6 @@ def build_run_config(
 
 ## 4. Memory
 
-<!-- excerpt: src/graph/memory.py::open_checkpointer -->
 ```python
 # src/graph/memory.py
 async def open_checkpointer(settings: Settings) -> AsyncIterator[BaseCheckpointSaver]:
@@ -214,7 +207,6 @@ LiveKit's chat context already holds the conversation and sends the **whole hist
 
 `stream_graph` runs the graph in a task and merges two sources into one queue: the graph's own `messages` stream (the tokens) and trace events from `TraceCallbackHandler` ([block 11](11-inspector.md)), which it converts into `node` and `tool` frames:
 
-<!-- excerpt: src/graph/streaming.py::stream_graph -->
 ```python
 # src/graph/streaming.py
 async def stream_graph(

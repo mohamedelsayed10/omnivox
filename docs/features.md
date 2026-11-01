@@ -5,7 +5,7 @@
 | Feature | Behavior | Where | Proof |
 | --- | --- | --- | --- |
 | Real-time voice agent | Browser mic through LiveKit: VAD, streaming STT, end-of-turn model, LangGraph agent, streaming TTS, barge-in | `src/voice/`, `src/ai_models/` | `tests/voice/`, `tests/ai_models/test_speech.py` |
-| LLM through an OpenAI-compatible API | Gemini by default, any compatible server by `OPENAI_BASE_URL` | `src/ai_models/llm.py` | `tests/ai_models/test_llm.py`, `scripts/smoke_models.py` |
+| LLM through an OpenAI-compatible API | Gemini by default, any compatible server by `OPENAI_BASE_URL` | `src/ai_models/llm.py` | `tests/ai_models/test_llm.py` |
 | Web search | `web_search` tool using ddgs, run in a thread with a timeout | `src/graph/tools/web_search.py`, `src/clients/web_search.py` | `tests/graph/test_tools.py`, `tests/clients/test_web_search.py` |
 | Retrieval from documents | `knowledge_search` tool: Cohere embeddings and Qdrant; upload, list, delete and search over the API and GUI | `src/rag/`, `src/graph/tools/knowledge_search.py` | `tests/rag/`, `tests/clients/test_qdrant.py`, `tests/api/test_routes.py` |
 | Swappable speech models | `STT_PROVIDER` / `TTS_PROVIDER` choose ElevenLabs or any OpenAI-format server | `src/ai_models/asr.py`, `tts.py` | `tests/ai_models/test_speech.py` |

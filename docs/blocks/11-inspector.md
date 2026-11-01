@@ -37,7 +37,6 @@ The text chat API reuses the second producer (through the SSE stream, [block 06]
 
 ## 2. The event: one shape for everything
 
-<!-- excerpt: src/utils/trace_events.py::TraceEvent -->
 ```python
 # src/utils/trace_events.py
 class TraceEvent:
@@ -77,7 +76,6 @@ New event kinds need **no change** in the transport and none in the browser, whi
 
 LangChain and LangGraph call **callbacks** at every start and end of a run: chain, LLM call, tool call. The handler turns those into events. Look at how a node boundary is recognized and how timing is kept:
 
-<!-- excerpt: src/graph/trace.py::TraceCallbackHandler.on_chain_start -->
 ```python
 # src/graph/trace.py (TraceCallbackHandler.on_chain_start)
 async def on_chain_start(
@@ -102,7 +100,6 @@ async def on_chain_start(
         self._routers[run_id] = _Timer(name)
 ```
 
-<!-- excerpt: src/graph/trace.py::TraceCallbackHandler.on_chain_end -->
 ```python
 # src/graph/trace.py (TraceCallbackHandler.on_chain_end)
 async def on_chain_end(
@@ -137,7 +134,6 @@ async def on_chain_end(
 - Tool arguments and results are cut to `INSPECTOR_MAX_FIELD_CHARS` (default 1500) with `truncate`.
 - **Cancellation is not an error.** When the caller speaks again, LiveKit cancels the running reply. The handler reports `graph.node_cancelled`, `llm.cancelled`, `tool.cancelled` instead of an error:
 
-<!-- excerpt: src/graph/trace.py::TraceCallbackHandler.on_tool_error -->
 ```python
 # src/graph/trace.py (TraceCallbackHandler.on_tool_error)
 async def on_tool_error(
@@ -181,7 +177,6 @@ The handler has `run_inline = True`, which makes callbacks run in order in the s
 
 A *turn* is one question and its answer. The counter increases when the user starts speaking **and** the previous turn is closed; the turn closes when the agent stops speaking. A pause in the middle of a question therefore stays in the same turn:
 
-<!-- excerpt: src/voice/inspector.py::Inspector._on_user_state -->
 ```python
 # src/voice/inspector.py (Inspector._on_user_state)
 def _on_user_state(self, event: events.UserStateChangedEvent) -> None:
@@ -204,7 +199,6 @@ Events created before the user speaks (the greeting) belong to turn 0.
 
 LiveKit puts timing on the messages it records. The **user's** message carries how long the end-of-turn model waited; the **assistant's** message carries model first-token time, TTS first-audio time, and the end-to-end latency. The Inspector joins the two:
 
-<!-- excerpt: src/voice/inspector.py::Inspector._user_metrics -->
 ```python
 # src/voice/inspector.py (Inspector._user_metrics)
 def _user_metrics(self, metrics: Mapping[str, Any]) -> None:
@@ -224,7 +218,6 @@ def _user_metrics(self, metrics: Mapping[str, Any]) -> None:
         )
 ```
 
-<!-- excerpt: src/voice/inspector.py::Inspector._turn_metrics -->
 ```python
 # src/voice/inspector.py (Inspector._turn_metrics)
 def _turn_metrics(self, metrics: Mapping[str, Any]) -> None:
@@ -257,7 +250,6 @@ def _turn_metrics(self, metrics: Mapping[str, Any]) -> None:
 
 `emit` never blocks: it puts the event on a queue. One background task takes events in order and publishes each as a **reliable data packet** with topic `omnivox.trace`:
 
-<!-- excerpt: src/voice/inspector.py::Inspector._publish_loop -->
 ```python
 # src/voice/inspector.py (Inspector._publish_loop)
 async def _publish_loop(self) -> None:
@@ -273,7 +265,6 @@ async def _publish_loop(self) -> None:
 
 A failed publish is logged and the loop continues: tracing must never take a call down. A data packet may not exceed about 15 KB, so an oversized event is replaced by a version without data:
 
-<!-- excerpt: src/voice/inspector.py::Inspector._encode -->
 ```python
 # src/voice/inspector.py (Inspector._encode)
 def _encode(event: TraceEvent) -> bytes:

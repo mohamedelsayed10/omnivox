@@ -46,7 +46,6 @@ scripts/             mock-server.mjs (a fake backend for development)
 
 Providers wrap the app in the order their dependencies need:
 
-<!-- excerpt: frontend/src/App.tsx#App -->
 ```tsx
 // frontend/src/App.tsx (App)
 export function App() {
@@ -70,7 +69,6 @@ export function App() {
 
 `Settings` (theme, API key) and `Toast` come first because everything may use them; `Layout` (current view, inspector size) next; then `Chat`, then `Voice`. `Voice` is **above the views**, so the LiveKit `Room` lives for the whole app: you can switch from Voice to Knowledge in the middle of a call and the call continues.
 
-<!-- excerpt: frontend/src/App.tsx#Shell -->
 ```tsx
 // frontend/src/App.tsx (Shell)
 function Shell() {
@@ -103,7 +101,6 @@ All requests use **relative URLs** (`/api/v1/...`). In development Vite proxies 
 
 The API always answers errors with `{"error": {code, message, request_id}}`. The client turns that into `ApiError`; anything that is *not* our envelope (a proxy page, a 502 when the backend is down) is mapped to a friendly "API is unreachable":
 
-<!-- excerpt: frontend/src/api/client.ts#toApiError -->
 ```typescript
 // frontend/src/api/client.ts (toApiError)
 async function toApiError(res: Response): Promise<ApiError> {
@@ -149,7 +146,6 @@ The UI shows the message and the `request_id`, so a user can quote the id and yo
 
 `EventSource` can only send GET requests; the chat stream needs a POST body, so the client reads the response body as a stream and parses SSE itself. The parser keeps a buffer, splits on blank lines (LF, CRLF or CR), joins multi-line `data:`, ignores `:` comment lines, and maps the five known event names to typed frames:
 
-<!-- excerpt: frontend/src/api/client.ts#SseParser -->
 ```typescript
 // frontend/src/api/client.ts (SseParser)
 export class SseParser {
@@ -178,7 +174,6 @@ export class SseParser {
 }
 ```
 
-<!-- excerpt: frontend/src/api/client.ts#streamAgent -->
 ```typescript
 // frontend/src/api/client.ts (streamAgent)
 export async function streamAgent(
@@ -223,7 +218,6 @@ export async function streamAgent(
 
 Events arrive from two places (the LiveKit data channel, and the chat tracer) at up to a few per millisecond. One store receives them all. It is a plain class used through React's `useSyncExternalStore`:
 
-<!-- excerpt: frontend/src/inspector/store.ts#normalizeTrace -->
 ```typescript
 // frontend/src/inspector/store.ts (normalizeTrace)
 export function normalizeTrace(raw: unknown): TraceEvent | null {
@@ -254,7 +248,6 @@ export function normalizeTrace(raw: unknown): TraceEvent | null {
 - **Pause** buffers new events without losing them; **resume** flushes.
 - **Notifications are coalesced to about 25 per second** (a 40 ms timer), so a burst of events causes one React render, not hundreds.
 
-<!-- excerpt: frontend/src/inspector/store.ts#ingest -->
 ```typescript
 // frontend/src/inspector/store.ts (ingest)
 ingest(raw: unknown, run: number, origin: Origin): InspectorEvent | null {
@@ -279,7 +272,6 @@ ingest(raw: unknown, run: number, origin: Origin): InspectorEvent | null {
 
 Events are then **grouped into turn cards** (one per `run:turn`), where a *run* is one call or one chat session:
 
-<!-- excerpt: frontend/src/inspector/store.ts#groupEvents -->
 ```typescript
 // frontend/src/inspector/store.ts (groupEvents)
 export function groupEvents(events: readonly InspectorEvent[], runs: readonly Run[]): TurnGroup[] {
@@ -321,7 +313,6 @@ export function groupEvents(events: readonly InspectorEvent[], runs: readonly Ru
 
 `state/voice.tsx` creates the `Room` once (echo cancellation, noise suppression and auto gain on) and offers a single `VoiceSession` object to the Voice view. The connect flow is the client half of [block 09](09-livekit.md):
 
-<!-- excerpt: frontend/src/state/voice.tsx:L279-313 -->
 ```tsx
 // frontend/src/state/voice.tsx
 const connect = useCallback(async () => {
@@ -365,7 +356,6 @@ Reading it: get a token from the API (`api.livekitToken`), start an Inspector ru
 
 **Agent state** comes from LiveKit (the agent's participant attribute `lk.agent.state`, via `useVoiceAssistant`) and is mapped to the UI's states. As a fallback, if the attribute has not arrived yet, the latest `session.agent_state` trace event is used:
 
-<!-- excerpt: frontend/src/state/voice.tsx#mapAgentState -->
 ```tsx
 // frontend/src/state/voice.tsx (mapAgentState)
 function mapAgentState(connection: ConnectionState, agentState: string): VoiceState {
@@ -387,7 +377,6 @@ function mapAgentState(connection: ConnectionState, agentState: string): VoiceSt
 
 **Transcript:** the user's lines are built from `stt.interim` and `stt.final` trace events (an interim line is revised in place, the final commits it); the agent's lines come from LiveKit text streams (`useTranscriptions`):
 
-<!-- excerpt: frontend/src/hooks/useTraceTranscript.ts#useTraceTranscript -->
 ```typescript
 // frontend/src/hooks/useTraceTranscript.ts (useTraceTranscript)
 export function useTraceTranscript(origin: Origin, run: number | null) {
@@ -436,7 +425,6 @@ export function useTraceTranscript(origin: Origin, run: number | null) {
 
 The chat view calls `streamAgent` and, for every frame, also calls `ChatTracer.frame`, which converts the frame into the **same event shape** the voice pipeline sends, so the Inspector renders both with one code path:
 
-<!-- excerpt: frontend/src/inspector/chatTrace.ts#frame -->
 ```typescript
 // frontend/src/inspector/chatTrace.ts (frame)
 frame(f: StreamFrame): void {

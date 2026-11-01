@@ -19,7 +19,7 @@ make docker-logs
 make down      # stops and removes the containers; the Qdrant data is kept
 ```
 
-Open http://localhost:8080, press the call button and allow the microphone. The API is on http://localhost:8100 (`GET /health`), and `bash examples/curl.sh` exercises every endpoint.
+Open http://localhost:8080, press the call button and allow the microphone. The API is on http://localhost:8100 (`GET /health`); the interactive API docs are at http://localhost:8100/docs.
 
 - **No GUI:** `make docker-up` starts everything except the GUI container.
 - **After changing `.env`:** `make restart` rebuilds and recreates every container. Compose reads `.env` only when a container is created.
@@ -40,7 +40,7 @@ make frontend-dev      # GUI on http://localhost:5173 (proxies /api to the API),
 
 Open http://localhost:5173, press the call button and allow the microphone.
 
-- Text chat and the knowledge base need only `make run` (and Qdrant); see [api.md](api.md) and [examples/](../examples/).
+- Text chat and the knowledge base need only `make run` (and Qdrant); see [api.md](api.md).
 - `make dev` reloads the API on code changes (`RELOAD=true`); `make agent-dev` does the same for the worker. If the worker's dev mode misbehaves on your platform use `make agent`.
 - The API takes a few seconds to start because it imports the LiveKit plugins; wait for "Application startup complete" before calling it.
 - Port 8000 is often taken by other tools, so the default is `PORT=8100`. If `QDRANT_HOST_PORT` is not 6333, set `QDRANT_URL` in `.env` to match.
@@ -96,7 +96,6 @@ Both units restart on failure after five seconds. The units, nginx site and ever
 ```bash
 make test    # offline: fake models, in-memory Qdrant, no keys, no network
 make check   # ruff lint + format check + tests
-make smoke   # real providers, needs real keys; not part of the test run
 ```
 
 Logs go to the console and to `files/logs/omnivox.log` (rotating). Set `LOG_FORMAT=json` for structured logs.

@@ -47,7 +47,6 @@ flowchart LR
 
 The LiveKit server trusts nobody. A client joins only with a token signed by the same API key and secret the server was started with. Our token names one identity, one room, and a few abilities:
 
-<!-- excerpt: src/services/livekit_service.py::LiveKitService.create_token -->
 ```python
 # src/services/livekit_service.py (LiveKitService.create_token)
 def create_token(self, identity: str | None = None, room: str | None = None) -> JoinToken:
@@ -89,7 +88,6 @@ If the secret in `.env` differs from the secret the server runs with, the join f
 
 Locally a container runs LiveKit with a small config passed through an environment variable:
 
-<!-- excerpt: deployment/docker-compose.yml:L31-53 -->
 ```yaml
 # deployment/docker-compose.yml
 livekit:
@@ -125,7 +123,6 @@ The key and secret in `keys:` come from `.env` (`LIVEKIT_API_KEY`, `LIVEKIT_API_
 
 The worker connects to the server with the same key and secret and says "I can take jobs":
 
-<!-- excerpt: src/voice/worker.py::create_server -->
 ```python
 # src/voice/worker.py
 def create_server(settings: Settings) -> AgentServer:

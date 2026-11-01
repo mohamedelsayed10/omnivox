@@ -34,7 +34,6 @@ flowchart LR
 
 ### `prewarm`: expensive things once
 
-<!-- excerpt: src/voice/worker.py::prewarm -->
 ```python
 # src/voice/worker.py
 def prewarm(proc: JobProcess) -> None:
@@ -49,7 +48,6 @@ Loading the Silero VAD model takes a moment and its object is safe to share betw
 
 ### `entrypoint`: one call
 
-<!-- excerpt: src/voice/worker.py::entrypoint -->
 ```python
 # src/voice/worker.py
 async def entrypoint(ctx: JobContext) -> None:
@@ -114,7 +112,6 @@ Read it top to bottom as a recipe:
 
 ## 3. The session
 
-<!-- excerpt: src/voice/session.py::build_session -->
 ```python
 # src/voice/session.py
 def build_session(
@@ -141,7 +138,6 @@ Non-streaming STT servers (the `openai` provider) are wrapped by the session usi
 
 ### The greeting
 
-<!-- excerpt: src/voice/session.py::OmniAgent -->
 ```python
 # src/voice/session.py
 class OmniAgent(Agent):
@@ -188,7 +184,6 @@ stateDiagram-v2
 
 LiveKit's LangChain adapter turns **every message the graph streams** into speech. In LangGraph's `messages` stream, the finished `ToolMessage` of each tool call is also streamed, and the adapter drops the metadata that says which node produced it. The first working call therefore read the raw `<web_result>` text aloud. The fix is a thin wrapper between the graph and the adapter:
 
-<!-- excerpt: src/voice/speakable.py::is_speakable -->
 ```python
 # src/voice/speakable.py
 def is_speakable(item: Any) -> bool:
@@ -200,7 +195,6 @@ def is_speakable(item: Any) -> bool:
     return from_agent and isinstance(message, AIMessage | AIMessageChunk)
 ```
 
-<!-- excerpt: src/voice/speakable.py::SpeakableGraph._speakable -->
 ```python
 # src/voice/speakable.py (SpeakableGraph._speakable)
 async def _speakable(self, stream: AsyncIterator[Any]) -> AsyncIterator[Any]:
@@ -216,7 +210,6 @@ Only assistant text from the `agent` node passes. `tests/voice/test_speakable.py
 
 If the model fails permanently (quota, outage) the session would otherwise go silent. The caller hears a short apology instead:
 
-<!-- excerpt: src/voice/session.py::install_error_fallback -->
 ```python
 # src/voice/session.py
 def install_error_fallback(session: AgentSession) -> None:
