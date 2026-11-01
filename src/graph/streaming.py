@@ -137,3 +137,4 @@ async def stream_graph(
             yield item
     finally:
         task.cancel()
+        await asyncio.gather(task, return_exceptions=True)

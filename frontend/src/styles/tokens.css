@@ -6,22 +6,23 @@
 :root {
   color-scheme: dark;
 
-  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --font-mono: ui-monospace, "JetBrains Mono", "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
+  --font-sans: "Inter Variable", "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: "JetBrains Mono Variable", ui-monospace, "JetBrains Mono", "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
 
-  --radius-xs: 6px;
-  --radius-sm: 9px;
-  --radius: 13px;
-  --radius-lg: 20px;
+  --radius-xs: 7px;
+  --radius-sm: 11px;
+  --radius: 16px;
+  --radius-lg: 24px;
   --radius-pill: 999px;
 
-  --rail-w: 76px;
-  --header-h: 60px;
+  --rail-w: 96px;
+  --header-h: 64px;
 
   /* surfaces */
-  --bg: #090b11;
-  --bg-glow-a: rgba(124, 108, 255, 0.16);
-  --bg-glow-b: rgba(34, 211, 238, 0.08);
+  --bg: #07080d;
+  --bg-glow-a: rgba(124, 108, 255, 0.22);
+  --bg-glow-b: rgba(34, 211, 238, 0.12);
+  --bg-glow-c: rgba(244, 114, 182, 0.1);
   --surface: #10131b;
   --surface-2: #161a25;
   --surface-3: #1d2230;
@@ -47,8 +48,17 @@
 
   --accent-grad: linear-gradient(135deg, #8b7bff 0%, #5b8cff 55%, #36d4ee 100%);
 
-  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4);
-  --shadow-2: 0 12px 32px -8px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.35);
+  --shadow-1: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px -12px rgba(0, 0, 0, 0.55);
+  --shadow-2: 0 24px 56px -12px rgba(0, 0, 0, 0.7), 0 4px 12px rgba(0, 0, 0, 0.35);
+  --shadow-glow: 0 10px 34px -8px color-mix(in srgb, var(--accent) 65%, transparent);
+
+  /* glass surfaces */
+  --glass: color-mix(in srgb, var(--surface) 58%, transparent);
+  --glass-strong: color-mix(in srgb, var(--surface) 84%, transparent);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --glass-border-top: rgba(255, 255, 255, 0.16);
+  --glass-shine: inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  --ease-out: cubic-bezier(0.2, 0.8, 0.2, 1);
   --focus: 0 0 0 2px var(--bg), 0 0 0 4px var(--accent);
 
   /* Inspector source colours (badge text + tint) */
@@ -73,9 +83,10 @@
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --bg: #f3f4f9;
-  --bg-glow-a: rgba(124, 108, 255, 0.14);
-  --bg-glow-b: rgba(34, 211, 238, 0.1);
+  --bg: #eef0f8;
+  --bg-glow-a: rgba(124, 108, 255, 0.24);
+  --bg-glow-b: rgba(34, 211, 238, 0.2);
+  --bg-glow-c: rgba(244, 114, 182, 0.14);
   --surface: #ffffff;
   --surface-2: #f6f7fb;
   --surface-3: #eceef6;
@@ -83,6 +94,11 @@
   --overlay: rgba(20, 24, 40, 0.38);
   --border: #dfe2ee;
   --border-strong: #c6cbdd;
+  --glass: color-mix(in srgb, #ffffff 62%, transparent);
+  --glass-strong: color-mix(in srgb, #ffffff 88%, transparent);
+  --glass-border: rgba(30, 36, 70, 0.08);
+  --glass-border-top: rgba(255, 255, 255, 0.9);
+  --glass-shine: inset 0 1px 0 rgba(255, 255, 255, 0.9);
 
   --text: #151826;
   --text-2: #444b64;

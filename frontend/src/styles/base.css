@@ -23,20 +23,44 @@ body {
   font-family: var(--font-sans);
   font-size: 14px;
   line-height: 1.5;
-  font-feature-settings: "cv11", "ss01", "tnum";
+  font-feature-settings: "cv11", "ss01", "cv05";
+  font-optical-sizing: auto;
+  letter-spacing: -0.003em;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
+/* Aurora: three slow-drifting colour fields behind everything, plus a faint dot grid. */
 body::before {
+  content: "";
+  position: fixed;
+  inset: -20%;
+  z-index: -2;
+  background:
+    radial-gradient(44rem 30rem at 14% 6%, var(--bg-glow-a), transparent 62%),
+    radial-gradient(40rem 28rem at 92% 96%, var(--bg-glow-b), transparent 62%),
+    radial-gradient(34rem 24rem at 70% 18%, var(--bg-glow-c), transparent 64%);
+  pointer-events: none;
+  animation: aurora 26s ease-in-out infinite alternate;
+}
+body::after {
   content: "";
   position: fixed;
   inset: 0;
   z-index: -1;
-  background:
-    radial-gradient(60rem 36rem at 12% -8%, var(--bg-glow-a), transparent 60%),
-    radial-gradient(50rem 30rem at 100% 105%, var(--bg-glow-b), transparent 60%);
+  background-image: radial-gradient(color-mix(in srgb, var(--text) 14%, transparent) 1px, transparent 1px);
+  background-size: 26px 26px;
+  mask-image: radial-gradient(80% 70% at 50% 40%, #000 20%, transparent 100%);
+  opacity: 0.35;
   pointer-events: none;
+}
+@keyframes aurora {
+  from {
+    transform: translate3d(-2%, -1%, 0) scale(1);
+  }
+  to {
+    transform: translate3d(3%, 2%, 0) scale(1.08);
+  }
 }
 
 h1,
@@ -137,23 +161,25 @@ pre,
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-height: 36px;
-  padding: 0 14px;
-  border: 1px solid var(--border-strong);
+  min-height: 38px;
+  padding: 0 16px;
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
-  background: var(--surface-2);
+  background: var(--glass-strong);
   color: var(--text);
-  font-weight: 550;
+  font-weight: 560;
   font-size: 13.5px;
   white-space: nowrap;
-  transition: background 0.15s, border-color 0.15s, transform 0.1s, opacity 0.15s;
+  box-shadow: var(--glass-shine);
+  transition: background 0.18s, border-color 0.18s, transform 0.18s var(--ease-out), box-shadow 0.18s, opacity 0.15s;
 }
 .btn:hover:not(:disabled) {
   background: var(--surface-hover);
-  border-color: color-mix(in srgb, var(--accent) 40%, var(--border-strong));
+  border-color: color-mix(in srgb, var(--accent) 45%, var(--glass-border));
+  transform: translateY(-1px);
 }
 .btn:active:not(:disabled) {
-  transform: translateY(1px);
+  transform: translateY(0) scale(0.985);
 }
 .btn:disabled {
   opacity: 0.5;
@@ -163,15 +189,29 @@ pre,
 }
 
 .btn-primary {
+  position: relative;
+  overflow: hidden;
   background: var(--accent-grad);
-  border-color: transparent;
+  border-color: color-mix(in srgb, #fff 22%, transparent);
   color: var(--on-accent);
-  box-shadow: 0 6px 20px -8px color-mix(in srgb, var(--accent) 80%, transparent);
+  box-shadow: var(--shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(105deg, transparent 30%, rgba(255, 255, 255, 0.35) 50%, transparent 70%);
+  transform: translateX(-120%);
+  transition: transform 0.7s var(--ease-out);
+  pointer-events: none;
 }
 .btn-primary:hover:not(:disabled) {
   background: var(--accent-grad);
-  filter: brightness(1.08);
-  border-color: transparent;
+  filter: brightness(1.07) saturate(1.1);
+  border-color: color-mix(in srgb, #fff 30%, transparent);
+}
+.btn-primary:hover:not(:disabled)::after {
+  transform: translateX(120%);
 }
 
 .btn-danger {
@@ -222,13 +262,14 @@ pre,
 .select,
 .textarea {
   width: 100%;
-  min-height: 38px;
-  padding: 0 12px;
-  background: var(--surface-2);
-  border: 1px solid var(--border-strong);
+  min-height: 42px;
+  padding: 0 14px;
+  background: color-mix(in srgb, var(--surface-2) 70%, transparent);
+  border: 1px solid var(--glass-border);
   border-radius: var(--radius-sm);
   color: var(--text);
-  transition: border-color 0.15s, background 0.15s;
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+  transition: border-color 0.18s, background 0.18s, box-shadow 0.18s;
 }
 .input::placeholder,
 .textarea::placeholder {
@@ -243,7 +284,7 @@ pre,
 .select:focus-visible,
 .textarea:focus-visible {
   border-color: var(--accent);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 24%, transparent);
   border-radius: var(--radius-sm);
 }
 .textarea {
@@ -291,22 +332,25 @@ pre,
 /* ---------------------------------------------------------------- cards, chips, badges */
 
 .card {
-  background: color-mix(in srgb, var(--surface) 88%, transparent);
-  border: 1px solid var(--border);
+  position: relative;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-top-color: var(--glass-border-top);
   border-radius: var(--radius-lg);
-  box-shadow: var(--shadow-1);
-  backdrop-filter: blur(8px);
+  box-shadow: var(--glass-shine), var(--shadow-1);
+  backdrop-filter: blur(22px) saturate(150%);
 }
 
 .chip {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: 26px;
-  padding: 0 10px;
+  min-height: 28px;
+  padding: 0 12px;
   border-radius: var(--radius-pill);
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(12px);
   color: var(--text-2);
   font-size: 12px;
   font-weight: 500;
@@ -431,11 +475,20 @@ pre,
   z-index: 60;
   min-width: 260px;
   max-width: min(92vw, 380px);
-  padding: 14px;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
+  padding: 16px;
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  border-top-color: var(--glass-border-top);
   border-radius: var(--radius);
-  box-shadow: var(--shadow-2);
+  box-shadow: var(--glass-shine), var(--shadow-2);
+  backdrop-filter: blur(26px) saturate(160%);
+  animation: pop-in 0.18s var(--ease-out);
+}
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
 }
 
 .toasts {
@@ -455,12 +508,13 @@ pre,
   gap: 10px;
   align-items: flex-start;
   padding: 11px 12px;
-  background: var(--surface);
-  border: 1px solid var(--border-strong);
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
   border-left: 3px solid var(--accent);
   border-radius: var(--radius-sm);
-  box-shadow: var(--shadow-2);
-  animation: toast-in 0.22s ease-out;
+  box-shadow: var(--glass-shine), var(--shadow-2);
+  backdrop-filter: blur(20px);
+  animation: toast-in 0.26s var(--ease-out);
 }
 .toast.err {
   border-left-color: var(--err);

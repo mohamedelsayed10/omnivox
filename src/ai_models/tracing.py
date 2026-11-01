@@ -31,8 +31,11 @@ class Tracing:
         """True when runs are being sent to LangSmith."""
         return self._client is not None
 
-    def get_callbacks(self, metadata: dict[str, Any] | None = None) -> list[BaseCallbackHandler]:
-        """Callbacks to put in a ``RunnableConfig``; empty when tracing is off."""
+    def get_callbacks(self) -> list[BaseCallbackHandler]:
+        """Callbacks to put in a ``RunnableConfig``; empty when tracing is off.
+
+        Tags and metadata travel in the config itself, so the tracer needs none of its own.
+        """
         if self._client is None:
             return []
         try:

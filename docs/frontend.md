@@ -90,3 +90,10 @@ browser asks for permission only when a call starts.
 Developed against the mock. The real WebRTC media path (mic capture, agent audio playback, the orb reacting to real
 levels) needs a running LiveKit server and agent worker and could not be exercised without them; the dev-only
 **Simulate call** button replays a scripted call through the same Inspector/transcript code path instead.
+
+## Look and feel
+
+- **Fonts** are self-hosted through `@fontsource-variable/inter` and `@fontsource-variable/jetbrains-mono` (imported in `src/main.tsx`), so the GUI makes no request to a font CDN.
+- **Tokens** live in `styles/tokens.css`: surfaces, text, accent gradient, status colours, plus the glass tokens (`--glass`, `--glass-strong`, `--glass-border`, `--glass-shine`) and `--ease-out`. Dark is the default; light follows `data-theme`.
+- **Surfaces** are translucent glass over a slowly drifting aurora background (`body::before` in `base.css`). The navigation rail, the Inspector and the cards float with rounded corners; on phones the rail becomes a floating bottom dock.
+- **Motion** (aurora drift, view and bubble entrances, button sheen, orb rings) is all CSS and switches off under `prefers-reduced-motion`.

@@ -8,9 +8,8 @@ from config.settings import Settings
 from src.rag.loaders import extract_text
 from src.rag.retriever import Retriever
 from src.utils.exceptions import InvalidInputError, NotFoundError
-from src.utils.models import DocumentInfo, IngestResult, Passage
+from src.utils.models import SOURCE_MAX_CHARS, DocumentInfo, IngestResult, Passage
 
-SOURCE_MAX_CHARS = 200
 CONTROL_CHARS = re.compile(r"[\x00-\x1f\x7f]")
 
 

@@ -51,7 +51,7 @@ def build_run_config(
         recursion_limit=settings.GRAPH_RECURSION_LIMIT,
         tags=[settings.APP_NAME, *tags],
         metadata=run_metadata,
-        callbacks=[*tracing.get_callbacks(run_metadata), *handlers],
+        callbacks=[*tracing.get_callbacks(), *handlers],
     )
 
 

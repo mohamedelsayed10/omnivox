@@ -4,7 +4,13 @@ import time
 from collections.abc import Awaitable, Callable, Sequence
 from datetime import datetime, timezone
 
-from langchain_core.messages import AIMessage, SystemMessage, trim_messages
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    trim_messages,
+)
 from langchain_core.runnables import RunnableConfig
 from langchain_core.tools import BaseTool
 
@@ -21,6 +27,12 @@ TIME_FORMAT = "%A, %d %B %Y, %H:%M UTC"
 AgentNode = Callable[[AgentState, RunnableConfig], Awaitable[dict[str, list[AIMessage]]]]
 
 
+def _current_turn(history: list[BaseMessage]) -> list[BaseMessage]:
+    """Messages from the latest user message on, so a small window never empties the context."""
+    start = max((i for i, m in enumerate(history) if isinstance(m, HumanMessage)), default=0)
+    return history[start:]
+
+
 def make_agent_node(llm: LLMService, tools: Sequence[BaseTool], settings: Settings) -> AgentNode:
     """Create the node. Incoming system messages are dropped: the prompt module owns them."""
 
@@ -34,6 +46,8 @@ def make_agent_node(llm: LLMService, tools: Sequence[BaseTool], settings: Settin
             strategy="last",
             start_on="human",
         )
+        if not window:
+            window = _current_turn(history)
         prompt = await AGENT_PROMPT.ainvoke(
             {
                 "messages": window,

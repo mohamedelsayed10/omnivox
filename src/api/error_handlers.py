@@ -63,9 +63,13 @@ def status_for(exc: OmniVoxError) -> int:
 
 
 async def _domain_error(request: Request, exc: OmniVoxError) -> JSONResponse:
-    logger.error("%s: %s", type(exc).__name__, exc, exc_info=exc)
+    status = status_for(exc)
+    if status >= 500:
+        logger.error("%s: %s", type(exc).__name__, exc, exc_info=exc)
+    else:
+        logger.info("%s (%d): %s", type(exc).__name__, status, exc)
     return error_response(
-        status=status_for(exc),
+        status=status,
         code=exc.code,
         message=exc.public_message,
         request_id=_request_id(request),

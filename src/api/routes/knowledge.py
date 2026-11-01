@@ -15,6 +15,7 @@ from src.api.schemas.responses import (
     SearchResponse,
     SearchResultOut,
 )
+from src.utils.models import SOURCE_MAX_CHARS
 
 router = APIRouter(prefix="/knowledge", tags=["knowledge"])
 
@@ -25,7 +26,6 @@ ERROR_RESPONSES = {
     502: {"model": ErrorResponse},
     503: {"model": ErrorResponse},
 }
-SOURCE_MAX_CHARS = 200
 
 
 @router.post(

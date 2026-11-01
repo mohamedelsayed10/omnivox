@@ -86,4 +86,19 @@ docs/          study guide and reference pages
 
 ## Documentation
 
-[**Study guide, one page per block**](docs/blocks/README.md) · [Installation](docs/installation.md) · [Running](docs/running.md) · [Configuration](docs/config.md) · [API](docs/api.md) · [Voice and Inspector](docs/voice.md) · [Graph](docs/graph.md) · [Models and tracing](docs/llm.md) · [Prompts](docs/prompts.md) · [Helpers](docs/utils.md) · [Features and assumptions](docs/features.md) · [Deployment](docs/deployment.md) · [GUI](docs/frontend.md) · [Postman collection](docs/api_integration/collections/collection.json)
+| Document | What it covers |
+| --- | --- |
+| [Study guide](docs/blocks/README.md) | One page per block (graph, LiveKit, frontend, infrastructure and more) for learning the code |
+| [Installation](docs/installation.md) | Prerequisites, `uv`, keys, the Windows command table |
+| [Running](docs/running.md) | Docker, local development and systemd, step by step |
+| [Configuration](docs/config.md) | Every environment variable with type, default and meaning |
+| [API](docs/api.md) | Endpoints, auth, request and response examples, errors, SSE events |
+| [Voice and Inspector](docs/voice.md) | The LiveKit pipeline and the internal-steps Inspector |
+| [Graph](docs/graph.md) | Agent graph: state, nodes, tools, memory, stream events |
+| [Models and tracing](docs/llm.md) | LLM, embeddings, speech models, thinking control, tracing |
+| [Prompts](docs/prompts.md) | Each prompt with purpose, variables, version and contract |
+| [Helpers](docs/utils.md) | Catalog of the pure helpers and domain errors |
+| [Features and assumptions](docs/features.md) | Features, limits and the assumptions made |
+| [Deployment](docs/deployment.md) | Compose profiles, systemd, nginx and every Makefile target |
+| [GUI](docs/frontend.md) | The React console: structure, theming, development |
+| [Postman collection](docs/api_integration/collections/collection.json) | Importable collection for Postman, Bruno and Insomnia |

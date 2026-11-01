@@ -20,7 +20,7 @@ def record(tracing: Tracing) -> None:
 def test_off_returns_no_callbacks_and_ignores_runs(settings):
     tracing = Tracing(settings)
     assert tracing.enabled is False
-    assert tracing.get_callbacks({"request_id": "r"}) == []
+    assert tracing.get_callbacks() == []
     record(tracing)
     tracing.flush()
 

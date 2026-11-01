@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass
 
+SOURCE_MAX_CHARS = 200  # longest accepted document name
+
 
 @dataclass(frozen=True)
 class Passage:

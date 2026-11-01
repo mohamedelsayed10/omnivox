@@ -84,3 +84,11 @@ async def test_server_errors_become_external_service_errors(store, monkeypatch):
         await store.search(A, top_k=1, score_threshold=None)
     with pytest.raises(ExternalServiceError):
         await store.list_documents()
+
+
+async def test_delete_stale_chunks_keeps_the_leading_chunks(store):
+    await store.ensure_collection(DIM)
+    await store.upsert("doc", ["1", "2", "3"], [A, B, C])
+    await store.delete_stale_chunks("doc", 2)
+    hits = await store.search(A, top_k=5, score_threshold=None)
+    assert sorted(h.chunk_index for h in hits) == [0, 1]

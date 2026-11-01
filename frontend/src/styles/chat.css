@@ -17,8 +17,8 @@
   max-width: 100%;
   padding: 2px 4px 2px 12px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--surface-2) 58%, transparent);
   font-size: 12px;
 }
 .session-chip .label {
@@ -157,8 +157,8 @@
   box-shadow: 0 6px 20px -10px color-mix(in srgb, var(--accent) 80%, transparent);
 }
 .msg.bot .bubble {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
+  background: color-mix(in srgb, var(--surface-2) 58%, transparent);
+  border: 1px solid var(--glass-border);
   border-top-left-radius: 5px;
 }
 .msg-note {
@@ -240,7 +240,7 @@
   overflow-x: auto;
   border-radius: var(--radius-sm);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
 }
 .md-code code {
   padding: 0;
@@ -303,7 +303,7 @@
   padding: 8px 10px;
   border-radius: var(--radius-sm);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--glass-border);
   max-width: 100%;
 }
 .spin {
@@ -354,7 +354,7 @@
   padding: 8px 14px;
   border-radius: var(--radius-pill);
   border: 1px solid var(--border-strong);
-  background: var(--surface-2);
+  background: color-mix(in srgb, var(--surface-2) 58%, transparent);
   color: var(--text-2);
   font-size: 13px;
   text-align: left;
@@ -399,4 +399,34 @@
   .composer {
     padding: 8px;
   }
+}
+
+/* ---------------------------------------------------------------- restyle: glass bubbles, lift, glow */
+.msg {
+  animation: bubble-in 0.32s var(--ease-out);
+}
+.msg.bot .bubble {
+  border-top-color: var(--glass-border-top);
+  box-shadow: 0 10px 28px -16px rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(12px);
+}
+.msg.user .bubble {
+  border: 1px solid color-mix(in srgb, #fff 24%, transparent);
+  box-shadow: var(--shadow-glow);
+}
+.suggestion {
+  backdrop-filter: blur(10px);
+  box-shadow: var(--glass-shine);
+  transition: border-color 0.18s, background 0.18s, color 0.18s, transform 0.2s var(--ease-out), box-shadow 0.2s;
+}
+.suggestion:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-glow);
+}
+.composer {
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+.composer:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 55%, var(--glass-border));
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent) 16%, transparent), var(--shadow-1);
 }

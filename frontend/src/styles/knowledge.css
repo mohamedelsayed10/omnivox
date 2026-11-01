@@ -111,8 +111,8 @@
   gap: 10px;
   padding: 10px 10px 10px 12px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--surface-2) 58%, transparent);
 }
 .upload-icon {
   padding-top: 2px;
@@ -166,8 +166,8 @@
   gap: 12px;
   padding: 10px 10px 10px 12px;
   border-radius: var(--radius-sm);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--surface-2) 58%, transparent);
   transition: border-color 0.15s;
 }
 .doc:hover {
@@ -223,8 +223,8 @@
 .result {
   padding: 12px 14px;
   border-radius: var(--radius);
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  border: 1px solid var(--glass-border);
+  background: color-mix(in srgb, var(--surface-2) 58%, transparent);
 }
 .result-head {
   display: flex;
@@ -307,4 +307,23 @@
     max-width: 100%;
     flex: 1;
   }
+}
+
+/* ---------------------------------------------------------------- restyle: lift and glow */
+.doc,
+.result,
+.upload {
+  backdrop-filter: blur(10px);
+  box-shadow: var(--glass-shine);
+  transition: border-color 0.18s, transform 0.2s var(--ease-out), box-shadow 0.2s;
+}
+.doc:hover,
+.result:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--accent) 38%, var(--glass-border));
+}
+.dropzone:not(:hover):not(:focus-visible):not(.over) {
+  background:
+    radial-gradient(80% 120% at 50% 0%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%),
+    color-mix(in srgb, var(--surface-2) 40%, transparent);
 }

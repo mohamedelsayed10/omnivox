@@ -16,10 +16,14 @@
   flex-direction: column;
   align-items: center;
   gap: 18px;
-  padding: 14px 8px;
-  background: color-mix(in srgb, var(--surface) 70%, transparent);
-  border-right: 1px solid var(--border);
-  backdrop-filter: blur(10px);
+  margin: 14px 0 14px 14px;
+  padding: 16px 10px;
+  background: var(--glass);
+  border: 1px solid var(--glass-border);
+  border-top-color: var(--glass-border-top);
+  border-radius: 28px;
+  box-shadow: var(--glass-shine), var(--shadow-1);
+  backdrop-filter: blur(22px) saturate(150%);
 }
 
 .rail-brand {
@@ -57,30 +61,26 @@
   align-items: center;
   gap: 4px;
   padding: 10px 4px 8px;
-  border-radius: var(--radius);
+  border-radius: 18px;
   color: var(--text-3);
   text-decoration: none;
   font-size: 11px;
   font-weight: 600;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.2s, color 0.2s, transform 0.2s var(--ease-out);
 }
 .rail-item:hover {
-  background: var(--surface-3);
+  background: color-mix(in srgb, var(--text) 7%, transparent);
   color: var(--text);
+  transform: translateY(-1px);
 }
 .rail-item[aria-current="page"] {
-  color: var(--accent-text);
-  background: color-mix(in srgb, var(--accent) 16%, transparent);
+  color: var(--text);
+  background: linear-gradient(160deg, color-mix(in srgb, var(--accent) 34%, transparent), color-mix(in srgb, var(--accent-2) 16%, transparent));
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 8px 24px -10px color-mix(in srgb, var(--accent) 70%, transparent);
 }
-.rail-item[aria-current="page"]::before {
-  content: "";
-  position: absolute;
-  left: -8px;
-  top: 14px;
-  bottom: 14px;
-  width: 3px;
-  border-radius: 0 3px 3px 0;
-  background: var(--accent-grad);
+.rail-item[aria-current="page"] svg {
+  color: var(--accent-text);
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 80%, transparent));
 }
 
 /* ---------------------------------------------------------------- header */
@@ -94,18 +94,26 @@
   gap: 12px;
   min-width: 0;
   padding: 0 16px 0 20px;
-  border-bottom: 1px solid var(--border);
-  background: color-mix(in srgb, var(--surface) 55%, transparent);
-  backdrop-filter: blur(10px);
+  background: transparent;
+}
+.topbar::after {
+  content: "";
+  position: absolute;
+  left: 20px;
+  right: 16px;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--glass-border-top), transparent);
+  opacity: 0.6;
 }
 .topbar-title {
   min-width: 0;
   margin-right: 4px;
 }
 .topbar-title h1 {
-  font-size: 17px;
+  font-size: 19px;
   font-weight: 700;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
   line-height: 1.2;
 }
 .topbar-title p {
@@ -184,11 +192,12 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  height: 32px;
-  padding: 0 12px;
+  height: 34px;
+  padding: 0 14px;
   border-radius: var(--radius-pill);
-  border: 1px solid var(--border-strong);
-  background: var(--surface-2);
+  border: 1px solid var(--glass-border);
+  background: var(--glass);
+  backdrop-filter: blur(12px);
   font-size: 12.5px;
   font-weight: 600;
   color: var(--text);
@@ -317,9 +326,16 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  padding: 18px 20px 20px;
+  padding: 14px 20px 20px;
   gap: 14px;
   overflow: hidden;
+  animation: view-in 0.45s var(--ease-out);
+}
+@keyframes view-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
 }
 .view-scroll {
   overflow-y: auto;
@@ -370,10 +386,10 @@
   .rail {
     flex-direction: row;
     justify-content: center;
-    padding: 6px 8px calc(6px + env(safe-area-inset-bottom));
+    margin: 0 12px calc(10px + env(safe-area-inset-bottom));
+    padding: 6px 8px;
     gap: 0;
-    border-right: 0;
-    border-top: 1px solid var(--border);
+    border-radius: 24px;
   }
   .rail-brand {
     display: none;
@@ -387,15 +403,6 @@
   }
   .rail-item {
     padding: 7px 4px 5px;
-  }
-  .rail-item[aria-current="page"]::before {
-    left: 28%;
-    right: 28%;
-    top: -7px;
-    bottom: auto;
-    width: auto;
-    height: 3px;
-    border-radius: 0 0 3px 3px;
   }
   .view {
     padding: 12px 12px 12px;

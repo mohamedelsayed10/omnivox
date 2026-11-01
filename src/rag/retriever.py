@@ -33,14 +33,18 @@ class Retriever:
         return passages
 
     async def ingest(self, source: str, text: str) -> IngestResult:
-        """Replace the stored chunks of ``source`` with freshly embedded ones."""
+        """Replace the stored chunks of ``source`` with freshly embedded ones.
+
+        New chunks are written first (same ids overwrite), then leftovers of a longer earlier
+        version are removed, so a failure never leaves the document missing.
+        """
         chunks = chunk_text(text, self._settings.RAG_CHUNK_SIZE, self._settings.RAG_CHUNK_OVERLAP)
         if not chunks:
             raise InvalidInputError("The document contains no text to index.")
         vectors = await self._embeddings.aembed_documents(chunks)
         await self._store.ensure_collection(len(vectors[0]))
-        await self._store.delete_document(source)
         await self._store.upsert(source, chunks, vectors)
+        await self._store.delete_stale_chunks(source, len(chunks))
         logger.info("Ingested document: %d chunk(s), %d characters", len(chunks), len(text))
         return IngestResult(source=source, chunks=len(chunks), characters=len(text))
 

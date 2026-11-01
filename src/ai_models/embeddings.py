@@ -34,6 +34,18 @@ def build_embeddings(settings: Settings) -> OpenAIEmbeddings:
     )
 
 
+async def _gather_or_cancel(coroutines: list) -> list:
+    """Run coroutines together; when one fails, cancel the rest instead of letting them run on."""
+    tasks = [asyncio.ensure_future(coro) for coro in coroutines]
+    try:
+        return await asyncio.gather(*tasks)
+    except BaseException:
+        for task in tasks:
+            task.cancel()
+        await asyncio.gather(*tasks, return_exceptions=True)
+        raise
+
+
 class EmbeddingService(AIModel):
     """Batched, concurrency-bounded embeddings with errors mapped to domain exceptions."""
 
@@ -78,7 +90,7 @@ class EmbeddingService(AIModel):
         size = self._settings.EMBEDDING_BATCH_SIZE
         batches = [texts[start : start + size] for start in range(0, len(texts), size)]
         async with self.traced("aembed_documents", texts=len(texts), batches=len(batches)):
-            results = await asyncio.gather(*(self._embed_batch(batch) for batch in batches))
+            results = await _gather_or_cancel([self._embed_batch(batch) for batch in batches])
         return [vector for batch in results for vector in batch]
 
     async def aembed_query(self, text: str) -> list[float]:

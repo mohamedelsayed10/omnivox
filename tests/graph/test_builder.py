@@ -75,6 +75,19 @@ async def test_history_window_keeps_latest_messages_starting_on_human(make_setti
     assert [m.content for m in sent] == ["two", "a2", "three"]
 
 
+async def test_small_window_never_drops_the_current_turn(make_settings):
+    settings = make_settings(GRAPH_MAX_HISTORY_MESSAGES=2)
+    runtime = build_runtime(settings, [ai("ok")])
+    history = [
+        HumanMessage("question"),
+        AIMessage("", tool_calls=[{"name": "web_search", "args": {}, "id": "c1"}]),
+        ToolMessage("result", tool_call_id="c1"),
+    ]
+    await runtime.build_graph().ainvoke({"messages": history}, run_config(runtime))
+    sent = [m for m in runtime.llm.get_model().seen[0] if not isinstance(m, SystemMessage)]
+    assert [m.content for m in sent] == ["question", "", "result"]
+
+
 async def test_unknown_tool_and_tool_failure_become_error_messages(settings):
     script = [
         ai("", ("delete_everything", {"x": 1}), ("web_search", {"query": "q"})),

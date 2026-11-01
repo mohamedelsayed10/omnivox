@@ -19,10 +19,20 @@
   inset: 0;
   z-index: -1;
   background:
-    radial-gradient(60% 70% at 50% 38%, color-mix(in srgb, var(--accent) 10%, transparent), transparent 70%),
-    repeating-linear-gradient(0deg, transparent 0 31px, color-mix(in srgb, var(--border) 45%, transparent) 31px 32px);
-  mask-image: radial-gradient(70% 80% at 50% 40%, #000 30%, transparent 100%);
-  opacity: 0.8;
+    radial-gradient(60% 70% at 50% 38%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 70%),
+    repeating-radial-gradient(circle at 50% 40%, transparent 0 66px, color-mix(in srgb, var(--accent) 11%, transparent) 66px 67px);
+  mask-image: radial-gradient(62% 78% at 50% 40%, #000 15%, transparent 100%);
+  animation: rings 9s ease-in-out infinite alternate;
+}
+@keyframes rings {
+  from {
+    transform: scale(0.96);
+    opacity: 0.7;
+  }
+  to {
+    transform: scale(1.04);
+    opacity: 1;
+  }
 }
 
 .stage-orb {
@@ -48,8 +58,13 @@
   margin-bottom: 14px;
 }
 .stage-text h2 {
-  font-size: 22px;
-  letter-spacing: -0.015em;
+  font-size: 26px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  background: linear-gradient(180deg, var(--text) 30%, color-mix(in srgb, var(--text) 62%, var(--accent)));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 .stage-text p {
   max-width: 460px;
@@ -65,7 +80,8 @@
   padding: 2px 11px 2px 9px;
   border-radius: var(--radius-pill);
   background: color-mix(in srgb, var(--c) 14%, transparent);
-  border: 1px solid color-mix(in srgb, var(--c) 32%, transparent);
+  border: 1px solid color-mix(in srgb, var(--c) 36%, transparent);
+  box-shadow: 0 0 22px -4px color-mix(in srgb, var(--c) 55%, transparent);
   color: var(--c);
   font-family: var(--font-mono);
   font-size: 11px;
@@ -111,10 +127,11 @@
   width: 100%;
 }
 .btn.round {
-  width: 46px;
-  height: 46px;
-  min-height: 46px;
+  width: 50px;
+  height: 50px;
+  min-height: 50px;
   border-radius: 50%;
+  backdrop-filter: blur(12px);
 }
 .btn.round.muted-mic {
   background: color-mix(in srgb, var(--err) 18%, var(--surface-2));
@@ -122,10 +139,12 @@
   color: var(--err);
 }
 .call-btn {
-  min-height: 46px;
-  padding: 0 24px;
+  min-height: 50px;
+  padding: 0 30px;
   border-radius: var(--radius-pill);
-  font-size: 14.5px;
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: -0.005em;
 }
 .device {
   display: flex;
@@ -173,8 +192,8 @@
   display: flex;
   align-items: baseline;
   gap: 10px;
-  padding: 12px 14px 8px 18px;
-  border-bottom: 1px solid var(--border);
+  padding: 14px 14px 10px 20px;
+  border-bottom: 1px solid var(--glass-border);
 }
 .tx-head h2 {
   font-size: 14px;
@@ -205,26 +224,37 @@
   text-transform: uppercase;
   color: var(--text-3);
 }
+.tx {
+  animation: bubble-in 0.32s var(--ease-out);
+}
+@keyframes bubble-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
 .tx p {
   margin: 0;
-  padding: 8px 13px;
-  border-radius: 14px;
+  padding: 10px 15px;
+  border-radius: 18px;
   line-height: 1.5;
   overflow-wrap: anywhere;
+  box-shadow: 0 6px 18px -10px rgba(0, 0, 0, 0.5);
 }
 .tx.user {
   align-self: flex-end;
   align-items: flex-end;
 }
 .tx.user p {
-  background: color-mix(in srgb, var(--accent) 20%, var(--surface-2));
-  border: 1px solid color-mix(in srgb, var(--accent) 35%, var(--border));
-  border-bottom-right-radius: 4px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 42%, var(--surface-2)), color-mix(in srgb, var(--accent-2) 22%, var(--surface-2)));
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--glass-border));
+  border-bottom-right-radius: 5px;
 }
 .tx.agent p {
-  background: var(--surface-2);
-  border: 1px solid var(--border);
-  border-bottom-left-radius: 4px;
+  background: var(--glass-strong);
+  border: 1px solid var(--glass-border);
+  border-top-color: var(--glass-border-top);
+  border-bottom-left-radius: 5px;
 }
 .tx.interim p {
   color: var(--text-2);

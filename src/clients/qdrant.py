@@ -18,6 +18,7 @@ logger = get_logger(__name__)
 
 IN_MEMORY_URL = ":memory:"
 SOURCE_FIELD = "source"
+CHUNK_FIELD = "chunk_index"
 POINT_NAMESPACE = uuid.UUID("6f1c6a52-3d1e-4c3b-9e0a-0d7f8b1f2a11")
 SCROLL_PAGE_SIZE = 256
 UPSERT_BATCH_SIZE = 128
@@ -80,7 +81,7 @@ class QdrantStore:
             qm.PointStruct(
                 id=point_id(source, index),
                 vector=vector,
-                payload={SOURCE_FIELD: source, "chunk_index": index, "text": text},
+                payload={SOURCE_FIELD: source, CHUNK_FIELD: index, "text": text},
             )
             for index, (text, vector) in enumerate(zip(chunks, vectors, strict=True))
         ]
@@ -89,6 +90,19 @@ class QdrantStore:
                 await self._client.upsert(
                     self._collection, points=points[start : start + UPSERT_BATCH_SIZE], wait=True
                 )
+
+    async def delete_stale_chunks(self, source: str, keep: int) -> None:
+        """Delete the chunks of ``source`` whose index is ``keep`` or higher."""
+        selector = qm.Filter(
+            must=[
+                qm.FieldCondition(key=SOURCE_FIELD, match=qm.MatchValue(value=source)),
+                qm.FieldCondition(key=CHUNK_FIELD, range=qm.Range(gte=keep)),
+            ]
+        )
+        async with self._guard("delete_stale_chunks"):
+            await self._client.delete(
+                self._collection, points_selector=qm.FilterSelector(filter=selector), wait=True
+            )
 
     async def search(
         self, vector: list[float], *, top_k: int, score_threshold: float | None

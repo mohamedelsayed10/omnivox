@@ -7,6 +7,7 @@ from pydantic import Field, SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ReasoningEffort = Literal["minimal", "low", "medium", "high"]
+MIN_SECRET_LENGTH = 6  # shorter values would mangle ordinary log text when masked
 
 
 class Settings(BaseSettings):
@@ -160,7 +161,9 @@ class Settings(BaseSettings):
             value = getattr(self, name)
             if isinstance(value, SecretStr) and value.get_secret_value():
                 values.extend(
-                    part for part in value.get_secret_value().split(",") if len(part.strip()) >= 8
+                    part
+                    for part in value.get_secret_value().split(",")
+                    if len(part.strip()) >= MIN_SECRET_LENGTH
                 )
         return values
 
