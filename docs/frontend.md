@@ -21,8 +21,6 @@ Run from `frontend/`.
 | `npm run typecheck`   | `tsc -b` only.                                                                                  |
 | `npm run preview`     | Serve `dist` on `:4173` with the same proxy.                                                    |
 
-`.claude/launch.json` has an `omnivox-frontend` entry that runs `dev:mock`.
-
 ## Environment
 
 | Variable            | Default                 | Meaning                                                              |
