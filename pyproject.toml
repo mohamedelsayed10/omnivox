@@ -37,7 +37,7 @@ package = false
 [tool.ruff]
 line-length = 100
 target-version = "py310"
-extend-exclude = ["frontend", "docs"]
+extend-exclude = ["frontend", "docs", "demo"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "B", "UP", "SIM", "ASYNC", "RUF"]

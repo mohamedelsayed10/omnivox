@@ -1,0 +1,9 @@
+.venv/
+clips/
+build/
+captions/
+cards/
+review/
+assets/mic_*.wav
+assets/music.wav
+__pycache__/
