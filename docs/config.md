@@ -26,13 +26,21 @@ Secrets are held as `SecretStr`, never printed, and masked in logs.
 
 | Variable | Type | Default | Meaning |
 | --- | --- | --- | --- |
-| `OPENAI_API_KEY` | secret | **required** | Key for the LLM endpoint (a Gemini key for the default base URL). Required. |
+| `OPENAI_API_KEY` | secret | **required** for the default endpoint | Key for the LLM endpoint (a Gemini key for the default base URL). It may stay blank when `OPENAI_BASE_URL` points at a server without auth, such as vLLM: a placeholder key is sent. |
 | `OPENAI_BASE_URL` | string | `https://generativelanguage.googleapis.com/v1beta/openai/` | OpenAI compatible base URL. Change it to use another provider or a vLLM server. |
 | `OPENAI_MODEL` | string | `gemini-3-flash-preview` | Chat model name. It must support tool calling. |
 | `OPENAI_TEMPERATURE` | number | `1.0` | Sampling temperature. Gemini 3 works best at its default of 1.0. |
 | `OPENAI_MAX_TOKENS` | integer (optional) | unset | Cap on reply tokens. Blank means no cap. |
 | `OPENAI_REASONING_EFFORT` | `minimal` \| `low` \| `medium` \| `high` (optional) | unset | minimal, low, medium or high. Lower is faster for voice. Blank uses the model default. |
-| `OPENAI_ENABLE_THINKING` | boolean (optional) | unset | Thinking for open-source and reasoning models (Qwen, Gemma, Nemotron on vLLM or OpenRouter). Sent as chat_template_kwargs.enable_thinking, plus OpenRouter's reasoning.enabled on openrouter.ai. false turns thinking off (faster replies), true turns it on, blank sends nothing and the model default applies. |
+| `OPENAI_ENABLE_THINKING` | boolean (optional) | unset | Thinking for open-source and reasoning models (Qwen, Gemma on vLLM or OpenRouter). Sent as chat_template_kwargs.enable_thinking, plus OpenRouter's reasoning.enabled on openrouter.ai. false turns thinking off (faster replies), true turns it on, blank sends nothing and the model default applies. Sent only when `OPENAI_MODEL` matches `OPENAI_THINKING_MODELS`. |
+| `OPENAI_THINKING_MODELS` | string | `qwen,gemma` | Comma separated fragments: the thinking switch is sent only to models whose name contains one of them (case-insensitive). Add `nemotron` to cover that model too, or `*` for every model. A set switch that does not match the model is ignored, and the startup log says so. |
+| `OPENAI_TOP_P` | number (optional) | unset | Nucleus sampling cutoff, above 0 up to 1. Blank sends nothing, so the server or model default applies (the same holds for every sampling setting below). |
+| `OPENAI_PRESENCE_PENALTY` | number (optional) | unset | Penalty for tokens already used, -2 to 2. A small positive value reduces repeated replies. |
+| `OPENAI_FREQUENCY_PENALTY` | number (optional) | unset | Penalty that grows with how often a token was used, -2 to 2. |
+| `OPENAI_SEED` | integer (optional) | unset | Fixed seed for repeatable output where the server supports it. |
+| `OPENAI_TOP_K` | integer (optional) | unset | vLLM extension sent in `extra_body`: sample only from the k most likely tokens. A provider that does not know it may answer HTTP 400. |
+| `OPENAI_MIN_P` | number (optional) | unset | vLLM extension: drop tokens whose probability is below this fraction of the top token, 0 to 1. |
+| `OPENAI_REPETITION_PENALTY` | number (optional) | unset | vLLM extension: repetition penalty, above 0. 1.0 is neutral. |
 | `MAX_RETRIES` | integer | `3` | Retries inside the model clients for transient errors. |
 | `REQUEST_TIMEOUT` | number | `60.0` | Seconds before a model call times out. |
 | `MAX_INPUT_CHARS` | integer | `20000` | Longest user message accepted, in characters. |
@@ -43,9 +51,12 @@ Secrets are held as `SecretStr`, never printed, and masked in logs.
 | --- | --- | --- | --- |
 | `EMBEDDING_BASE_URL` | string | `https://api.cohere.ai/compatibility/v1` | OpenAI compatible embeddings endpoint. |
 | `EMBEDDING_MODEL` | string | `embed-v5.0-fast` | Embedding model name. Documents and queries must use the same family. |
-| `EMBEDDING_API_KEY` | secret (optional) | unset | Key for the embeddings endpoint (Cohere). Without it the knowledge base is unavailable. |
+| `EMBEDDING_API_KEY` | secret (optional) | unset | Key for the embeddings endpoint (Cohere). Without it the knowledge base is unavailable, unless `EMBEDDING_BASE_URL` points at another server (a server without auth needs no key; a placeholder is sent). |
 | `EMBEDDING_BATCH_SIZE` | integer | `96` | Texts per embedding request (Cohere accepts at most 96). |
 | `EMBEDDING_CONCURRENCY` | integer | `4` | Embedding requests in flight at once. |
+| `EMBEDDING_QUERY_PREFIX` | string (optional) | unset | Text put in front of every search query, for models trained with instructions or prefixes. A `.env` line cannot hold a newline or a trailing space: write `\n` for a newline, `\t` for a tab and `\s` for a space (for example `query:\s` for e5 models). |
+| `EMBEDDING_DOCUMENT_PREFIX` | string (optional) | unset | Text put in front of every chunk when it is indexed (for example `passage:\s` for e5 models). Changing a prefix needs a new `QDRANT_COLLECTION`, because the stored vectors change. |
+| `EMBEDDING_DIMENSIONS` | integer (optional) | unset | Output vector size for models that can shorten it (Matryoshka). Blank keeps the model's own size. A server that does not support it answers HTTP 400. |
 
 ## Speech to text
 
@@ -57,6 +68,8 @@ Secrets are held as `SecretStr`, never printed, and masked in logs.
 | `STT_LANGUAGE` | string (optional) | unset | Language code such as en or ar. Blank means automatic detection where supported. |
 | `STT_BASE_URL` | string (optional) | unset | Only for STT_PROVIDER=openai, for example http://localhost:8001/v1 |
 | `STT_API_KEY` | secret (optional) | unset | Key for that server. Blank is fine for servers without auth. |
+| `STT_PROMPT` | string (optional) | unset | Only for STT_PROVIDER=openai: free text that guides the transcript (names, jargon, spelling). |
+| `STT_TEMPERATURE` | number (optional) | unset | Only for STT_PROVIDER=openai: sampling temperature from 0 to 1. Blank uses the server default. |
 
 ## Text to speech
 
@@ -64,9 +77,13 @@ Secrets are held as `SecretStr`, never printed, and masked in logs.
 | --- | --- | --- | --- |
 | `TTS_PROVIDER` | `elevenlabs` \| `openai` | `elevenlabs` | elevenlabs (native streaming) or openai (any /v1/audio/speech server, for example vLLM). |
 | `TTS_MODEL` | string | `eleven_v4_turbo` | Text to speech model name. |
-| `TTS_VOICE` | string | `EXAVITQu4vr4xnSDxMaL` | ElevenLabs voice id (default: Sarah), or the voice name for an OpenAI compatible server. Free ElevenLabs plans cannot use library voices through the API; Sarah, Roger, George and Charlie work. |
+| `TTS_VOICE` | string | `EXAVITQu4vr4xnSDxMaL` | ElevenLabs voice id (default: Sarah), or the voice name for an OpenAI compatible server. Free ElevenLabs plans cannot use library voices through the API; Sarah, Roger, George and Charlie work. Use `none` for an OpenAI compatible server with a default voice that rejects voice names (vLLM-Omni Higgs): no voice is sent. |
 | `TTS_BASE_URL` | string (optional) | unset | Only for TTS_PROVIDER=openai, for example http://localhost:8002/v1 |
 | `TTS_API_KEY` | secret (optional) | unset | Key for that server. Blank is fine for servers without auth. |
+| `TTS_RESPONSE_FORMAT` | string (optional) | unset | Only for TTS_PROVIDER=openai: audio format requested from the server (mp3, opus, wav, pcm...). Blank uses the plugin default (mp3). Use pcm for servers that stream raw audio, such as vLLM-Omni. |
+| `TTS_SAMPLE_RATE` | integer | `24000` | Only for TTS_PROVIDER=openai: sample rate of the audio the server returns, in Hz. Raw pcm is not resampled, so it must match the model: a wrong value plays too fast or too slow. |
+| `TTS_SPEED` | number | `1.0` | Only for TTS_PROVIDER=openai: speaking speed, 0.25 to 4. Some servers accept only 1.0 while streaming (vLLM-Omni Higgs does). |
+| `TTS_INSTRUCTIONS` | string (optional) | unset | Only for TTS_PROVIDER=openai: voice style hint for models that accept one. |
 
 ## Voice pipeline
 
@@ -143,6 +160,8 @@ Secrets are held as `SecretStr`, never printed, and masked in logs.
 | `GRAPH_MEMORY_BACKEND` | `memory` \| `sqlite` | `memory` | memory or sqlite. Backs the text chat endpoints; voice history lives in LiveKit. |
 | `GRAPH_MEMORY_URL` | string | `files/graph_memory.sqlite` | SQLite file path when GRAPH_MEMORY_BACKEND=sqlite. |
 | `GRAPH_MAX_HISTORY_MESSAGES` | integer | `40` | Messages kept in the model context per call. |
+| `GRAPH_MAX_HISTORY_CHARS` | integer (optional) | unset | Also cap the history by size in characters (roughly 4 per token), at least 500. Blank means no cap. Use it with a small context window, where a few long search results would overflow the model. The current turn is always kept. |
+| `AGENT_INSTRUCTIONS` | string (optional) | unset | Extra lines appended to the system prompt, for example a reply language. `\n` starts a new line. |
 
 ## Docker Compose only
 

@@ -17,6 +17,9 @@ logger = get_logger(__name__)
 
 ErrorKind = Literal["timeout", "rate_limit", "other"]
 
+# OpenAI clients refuse an empty key, while self-hosted servers such as vLLM ignore it.
+PLACEHOLDER_API_KEY = "EMPTY"
+
 
 @dataclass(frozen=True)
 class ModelInfo:

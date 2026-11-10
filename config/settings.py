@@ -3,11 +3,21 @@
 from functools import lru_cache
 from typing import Literal
 
-from pydantic import Field, SecretStr, model_validator
+from pydantic import Field, SecretStr, ValidationInfo, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 ReasoningEffort = Literal["minimal", "low", "medium", "high"]
 MIN_SECRET_LENGTH = 6  # shorter values would mangle ordinary log text when masked
+
+DEFAULT_OPENAI_BASE_URL = "https://generativelanguage.googleapis.com/v1beta/openai/"
+DEFAULT_EMBEDDING_BASE_URL = "https://api.cohere.ai/compatibility/v1"
+# A .env line cannot hold a newline, and the file parser trims trailing spaces.
+ESCAPES = {"\\n": "\n", "\\t": "\t", "\\s": " "}
+
+
+def same_url(left: str, right: str) -> bool:
+    """True when two base URLs differ only by a trailing slash."""
+    return left.rstrip("/") == right.rstrip("/")
 
 
 class Settings(BaseSettings):
@@ -35,23 +45,35 @@ class Settings(BaseSettings):
     MAX_CONCURRENT_RUNS: int = Field(default=8, ge=1)
 
     # --- LLM (any OpenAI-compatible endpoint) ---
-    OPENAI_API_KEY: SecretStr = Field(min_length=1)
-    OPENAI_BASE_URL: str = "https://generativelanguage.googleapis.com/v1beta/openai/"
+    OPENAI_BASE_URL: str = DEFAULT_OPENAI_BASE_URL
+    # Required for the default Gemini endpoint; optional for a self-hosted server (see validator).
+    OPENAI_API_KEY: SecretStr = Field(default=SecretStr(""), validate_default=True)
     OPENAI_MODEL: str = "gemini-3-flash-preview"
     OPENAI_TEMPERATURE: float = Field(default=1.0, ge=0.0, le=2.0)
     OPENAI_MAX_TOKENS: int | None = Field(default=None, ge=1)
     OPENAI_REASONING_EFFORT: ReasoningEffort | None = None
     OPENAI_ENABLE_THINKING: bool | None = None
+    OPENAI_THINKING_MODELS: str = "qwen,gemma"
+    OPENAI_TOP_P: float | None = Field(default=None, gt=0.0, le=1.0)
+    OPENAI_PRESENCE_PENALTY: float | None = Field(default=None, ge=-2.0, le=2.0)
+    OPENAI_FREQUENCY_PENALTY: float | None = Field(default=None, ge=-2.0, le=2.0)
+    OPENAI_SEED: int | None = None
+    OPENAI_TOP_K: int | None = Field(default=None, ge=1)
+    OPENAI_MIN_P: float | None = Field(default=None, ge=0.0, le=1.0)
+    OPENAI_REPETITION_PENALTY: float | None = Field(default=None, gt=0.0)
     MAX_RETRIES: int = Field(default=3, ge=0)
     REQUEST_TIMEOUT: float = Field(default=60.0, gt=0)
     MAX_INPUT_CHARS: int = Field(default=20_000, ge=1)
 
     # --- Embeddings (OpenAI-compatible) ---
-    EMBEDDING_BASE_URL: str = "https://api.cohere.ai/compatibility/v1"
+    EMBEDDING_BASE_URL: str = DEFAULT_EMBEDDING_BASE_URL
     EMBEDDING_MODEL: str = "embed-v5.0-fast"
     EMBEDDING_API_KEY: SecretStr | None = None
     EMBEDDING_BATCH_SIZE: int = Field(default=96, ge=1)
     EMBEDDING_CONCURRENCY: int = Field(default=4, ge=1)
+    EMBEDDING_QUERY_PREFIX: str | None = None
+    EMBEDDING_DOCUMENT_PREFIX: str | None = None
+    EMBEDDING_DIMENSIONS: int | None = Field(default=None, ge=1)
 
     # --- Speech to text ---
     ELEVENLABS_API_KEY: SecretStr | None = None
@@ -60,6 +82,8 @@ class Settings(BaseSettings):
     STT_LANGUAGE: str | None = None
     STT_BASE_URL: str | None = None
     STT_API_KEY: SecretStr | None = None
+    STT_PROMPT: str | None = None
+    STT_TEMPERATURE: float | None = Field(default=None, ge=0.0, le=1.0)
 
     # --- Text to speech ---
     TTS_PROVIDER: Literal["elevenlabs", "openai"] = "elevenlabs"
@@ -67,6 +91,10 @@ class Settings(BaseSettings):
     TTS_VOICE: str = "EXAVITQu4vr4xnSDxMaL"
     TTS_BASE_URL: str | None = None
     TTS_API_KEY: SecretStr | None = None
+    TTS_RESPONSE_FORMAT: str | None = None
+    TTS_SAMPLE_RATE: int = Field(default=24_000, ge=8_000, le=192_000)
+    TTS_SPEED: float = Field(default=1.0, ge=0.25, le=4.0)
+    TTS_INSTRUCTIONS: str | None = None
 
     # --- Voice pipeline ---
     VAD_ACTIVATION_THRESHOLD: float = Field(default=0.5, ge=0.0, le=1.0)
@@ -122,6 +150,36 @@ class Settings(BaseSettings):
     GRAPH_MEMORY_BACKEND: Literal["memory", "sqlite"] = "memory"
     GRAPH_MEMORY_URL: str = "files/graph_memory.sqlite"
     GRAPH_MAX_HISTORY_MESSAGES: int = Field(default=40, ge=2)
+    GRAPH_MAX_HISTORY_CHARS: int | None = Field(default=None, ge=500)
+    AGENT_INSTRUCTIONS: str | None = None
+
+    @field_validator("OPENAI_API_KEY")
+    @classmethod
+    def _llm_key_required_for_the_default_endpoint(
+        cls, value: SecretStr, info: ValidationInfo
+    ) -> SecretStr:
+        base_url = info.data.get("OPENAI_BASE_URL", DEFAULT_OPENAI_BASE_URL)
+        if not value.get_secret_value() and same_url(base_url, DEFAULT_OPENAI_BASE_URL):
+            raise ValueError(
+                "OPENAI_API_KEY is required for the default endpoint. "
+                "It may stay blank when OPENAI_BASE_URL points at a server without auth."
+            )
+        return value
+
+    @field_validator(
+        "EMBEDDING_QUERY_PREFIX",
+        "EMBEDDING_DOCUMENT_PREFIX",
+        "STT_PROMPT",
+        "TTS_INSTRUCTIONS",
+        "AGENT_INSTRUCTIONS",
+    )
+    @classmethod
+    def _decode_escapes(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        for escaped, real in ESCAPES.items():
+            value = value.replace(escaped, real)
+        return value
 
     @model_validator(mode="after")
     def _check_consistency(self) -> "Settings":
@@ -141,6 +199,13 @@ class Settings(BaseSettings):
     def cors_origins_list(self) -> list[str]:
         """CORS origins as a list."""
         return [item.strip() for item in self.CORS_ORIGINS.split(",") if item.strip()]
+
+    @property
+    def thinking_models_list(self) -> list[str]:
+        """Lowercase name fragments of the models that get the thinking switch."""
+        return [
+            item.strip().lower() for item in self.OPENAI_THINKING_MODELS.split(",") if item.strip()
+        ]
 
     @property
     def api_keys_list(self) -> list[str]:

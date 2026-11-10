@@ -2,7 +2,9 @@
 
 import pytest
 from livekit.agents import inference
+from livekit.agents.types import NOT_GIVEN
 from livekit.plugins import elevenlabs, openai
+from openai import omit
 
 from src.ai_models.asr import PLACEHOLDER_API_KEY, SpeechToText
 from src.ai_models.tts import TextToSpeech
@@ -67,6 +69,73 @@ def test_tts_openai_format_uses_any_compatible_server(make_settings):
     plugin = TextToSpeech(settings).build()
     assert isinstance(plugin, openai.TTS)
     assert plugin.model == "kokoro"
+
+
+@pytest.mark.parametrize(("configured", "expected"), [(None, "mp3"), ("pcm", "pcm")])
+def test_tts_openai_format_passes_the_response_format(make_settings, configured, expected):
+    settings = make_settings(
+        TTS_PROVIDER="openai",
+        TTS_BASE_URL="http://localhost:8002/v1",
+        TTS_RESPONSE_FORMAT=configured,
+    )
+    plugin = TextToSpeech(settings).build()
+    assert plugin._opts.response_format == expected
+
+
+def test_tts_openai_format_passes_rate_speed_and_instructions(make_settings):
+    settings = make_settings(
+        TTS_PROVIDER="openai",
+        TTS_BASE_URL="http://localhost:8002/v1",
+        TTS_SAMPLE_RATE=22_050,
+        TTS_SPEED=1.25,
+        TTS_INSTRUCTIONS="Speak calmly.",
+    )
+    plugin = TextToSpeech(settings).build()
+    assert plugin.sample_rate == 22_050
+    assert plugin._opts.speed == 1.25
+    assert plugin._opts.instructions == "Speak calmly."
+
+
+def test_tts_openai_format_defaults_match_the_plugin(make_settings):
+    plugin = TextToSpeech(
+        make_settings(TTS_PROVIDER="openai", TTS_BASE_URL="http://localhost:8002/v1")
+    ).build()
+    assert (plugin.sample_rate, plugin._opts.speed, plugin._opts.instructions) == (
+        24_000,
+        1.0,
+        None,
+    )
+
+
+def test_stt_openai_format_passes_prompt_and_temperature(make_settings):
+    settings = make_settings(
+        STT_PROVIDER="openai",
+        STT_BASE_URL="http://localhost:8001/v1",
+        STT_PROMPT="Names: Ahmed, Mona.",
+        STT_TEMPERATURE=0.2,
+    )
+    opts = SpeechToText(settings).build()._opts
+    assert opts.prompt == "Names: Ahmed, Mona."
+    assert opts.temperature == 0.2
+
+
+def test_stt_openai_format_leaves_prompt_and_temperature_unset_by_default(make_settings):
+    settings = make_settings(STT_PROVIDER="openai", STT_BASE_URL="http://localhost:8001/v1")
+    opts = SpeechToText(settings).build()._opts
+    assert isinstance(opts.prompt, type(NOT_GIVEN)) and isinstance(
+        opts.temperature, type(NOT_GIVEN)
+    )
+
+
+def test_tts_openai_format_can_omit_the_voice(make_settings):
+    settings = make_settings(
+        TTS_PROVIDER="openai", TTS_BASE_URL="http://localhost:8002/v1", TTS_VOICE="none"
+    )
+    assert TextToSpeech(settings).build()._opts.voice is omit
+    named = make_settings(
+        TTS_PROVIDER="openai", TTS_BASE_URL="http://localhost:8002/v1", TTS_VOICE="af"
+    )
+    assert TextToSpeech(named).build()._opts.voice == "af"
 
 
 @pytest.mark.parametrize("overrides", [{"ELEVENLABS_API_KEY": None}, {"TTS_PROVIDER": "openai"}])

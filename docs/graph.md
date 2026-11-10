@@ -36,7 +36,7 @@ Legend: stadium = client or response, subroutine = service/node, hexagon = model
 
 | Node | File | What it does |
 | --- | --- | --- |
-| `agent` | `src/graph/nodes/agent.py` | Keeps the last `GRAPH_MAX_HISTORY_MESSAGES` messages (starting on a user message), applies the system prompt with the current time, calls `LLMService.ainvoke` with the tools bound. |
+| `agent` | `src/graph/nodes/agent.py` | Keeps the last `GRAPH_MAX_HISTORY_MESSAGES` messages (starting on a user message, and within `GRAPH_MAX_HISTORY_CHARS` when set; the current turn is always kept), applies the system prompt with the current time plus any `AGENT_INSTRUCTIONS`, calls `LLMService.ainvoke` with the tools bound. |
 | `tools` | `src/graph/nodes/tools.py` | Runs the tool calls of the last assistant message in parallel. An unknown tool name or a tool exception becomes an error `ToolMessage` with a safe text, so the conversation continues. |
 
 Router: `route_after_agent` returns `tools` when the last message has tool calls, otherwise ends. The step limit is `GRAPH_RECURSION_LIMIT`; hitting it raises `GraphExecutionError` (`graph_error`).

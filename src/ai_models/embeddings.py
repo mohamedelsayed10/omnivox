@@ -8,8 +8,8 @@ from langchain_openai import OpenAIEmbeddings
 from openai import DefaultAsyncHttpxClient
 
 from config.logger import get_logger
-from config.settings import Settings
-from src.ai_models.base import AIModel, ModelInfo, classify_provider_error
+from config.settings import DEFAULT_EMBEDDING_BASE_URL, Settings, same_url
+from src.ai_models.base import PLACEHOLDER_API_KEY, AIModel, ModelInfo, classify_provider_error
 from src.utils.exceptions import ConfigurationError, ExternalServiceError, OmniVoxError
 
 logger = get_logger(__name__)
@@ -17,14 +17,23 @@ logger = get_logger(__name__)
 PROBE_TEXT = "dimension probe"
 
 
+def embeddings_configured(settings: Settings) -> bool:
+    """True with a key, or with a custom endpoint (a self-hosted server needs no key)."""
+    return settings.EMBEDDING_API_KEY is not None or not same_url(
+        settings.EMBEDDING_BASE_URL, DEFAULT_EMBEDDING_BASE_URL
+    )
+
+
 def build_embeddings(settings: Settings) -> OpenAIEmbeddings:
-    """Create the embeddings client; raises ``ConfigurationError`` when no key is set."""
-    if settings.EMBEDDING_API_KEY is None:
+    """Create the embeddings client; raises ``ConfigurationError`` when it cannot be used."""
+    if not embeddings_configured(settings):
         raise ConfigurationError("The embedding API key (EMBEDDING_API_KEY) is not configured.")
+    key = settings.EMBEDDING_API_KEY
     return OpenAIEmbeddings(
         model=settings.EMBEDDING_MODEL,
-        api_key=settings.EMBEDDING_API_KEY,
+        api_key=key.get_secret_value() if key else PLACEHOLDER_API_KEY,
         base_url=settings.EMBEDDING_BASE_URL,
+        dimensions=settings.EMBEDDING_DIMENSIONS,
         max_retries=settings.MAX_RETRIES,
         request_timeout=settings.REQUEST_TIMEOUT,
         chunk_size=settings.EMBEDDING_BATCH_SIZE,
@@ -76,7 +85,7 @@ class EmbeddingService(AIModel):
     @property
     def configured(self) -> bool:
         """True when embeddings can be requested."""
-        return self._embeddings is not None or self._settings.EMBEDDING_API_KEY is not None
+        return self._embeddings is not None or embeddings_configured(self._settings)
 
     def _client(self) -> Embeddings:
         if self._embeddings is None:
@@ -87,6 +96,9 @@ class EmbeddingService(AIModel):
         """Embed texts in batches, preserving order."""
         if not texts:
             return []
+        prefix = self._settings.EMBEDDING_DOCUMENT_PREFIX or ""
+        if prefix:
+            texts = [prefix + text for text in texts]
         size = self._settings.EMBEDDING_BATCH_SIZE
         batches = [texts[start : start + size] for start in range(0, len(texts), size)]
         async with self.traced("aembed_documents", texts=len(texts), batches=len(batches)):
@@ -95,6 +107,7 @@ class EmbeddingService(AIModel):
 
     async def aembed_query(self, text: str) -> list[float]:
         """Embed one search query."""
+        text = (self._settings.EMBEDDING_QUERY_PREFIX or "") + text
         async with self.traced("aembed_query", chars=len(text)):
             try:
                 async with self._semaphore:

@@ -1,16 +1,21 @@
 """LLM service: input limits, error mapping, output checks, client config and Gemini signatures."""
 
+import logging
+
 import httpx
 import openai
 import pytest
 from langchain_core.messages import AIMessage, HumanMessage
 
+from src.ai_models.base import PLACEHOLDER_API_KEY
 from src.ai_models.llm import (
     SIGNATURE_BYPASS,
     GeminiChatOpenAI,
     LLMService,
     build_chat_model,
+    effective_thinking,
     message_text,
+    request_extra_body,
     thinking_extra_body,
 )
 from src.utils.exceptions import (
@@ -248,7 +253,7 @@ async def test_injected_models_are_never_closed_by_the_service(settings):
     ],
 )
 def test_thinking_switch_becomes_chat_template_kwargs(make_settings, value, expected):
-    settings = make_settings(OPENAI_ENABLE_THINKING=value)
+    settings = make_settings(OPENAI_MODEL="Qwen/Qwen3-8B", OPENAI_ENABLE_THINKING=value)
     assert thinking_extra_body(settings) == expected
     model = build_chat_model(settings)
     assert model.extra_body == expected
@@ -261,6 +266,7 @@ def test_openrouter_also_gets_its_own_reasoning_parameter(make_settings, value):
     settings = make_settings(
         OPENAI_BASE_URL="https://openrouter.ai/api/v1/",
         OPENAI_MODEL="nvidia/nemotron-3.5-lightning:free",
+        OPENAI_THINKING_MODELS="qwen,gemma,nemotron",
         OPENAI_ENABLE_THINKING=value,
     )
     assert thinking_extra_body(settings) == {
@@ -273,7 +279,9 @@ def test_openrouter_also_gets_its_own_reasoning_parameter(make_settings, value):
 
 def test_other_hosts_do_not_get_the_openrouter_parameter(make_settings):
     settings = make_settings(
-        OPENAI_BASE_URL="http://localhost:8000/v1", OPENAI_ENABLE_THINKING=False
+        OPENAI_BASE_URL="http://localhost:8000/v1",
+        OPENAI_MODEL="Qwen/Qwen3-8B",
+        OPENAI_ENABLE_THINKING=False,
     )
     assert "reasoning" not in thinking_extra_body(settings)
 
@@ -291,8 +299,108 @@ def test_thinking_switch_works_for_any_openai_compatible_host(make_settings):
     assert model.reasoning_effort is None
 
 
+def test_sampling_settings_reach_the_request(make_settings):
+    settings = make_settings(
+        OPENAI_BASE_URL="http://vllm.internal:8000/v1",
+        OPENAI_MODEL="Qwen/Qwen3-8B",
+        OPENAI_ENABLE_THINKING=False,
+        OPENAI_TOP_P=0.9,
+        OPENAI_PRESENCE_PENALTY=0.5,
+        OPENAI_FREQUENCY_PENALTY=0.2,
+        OPENAI_SEED=7,
+        OPENAI_TOP_K=20,
+        OPENAI_MIN_P=0.05,
+        OPENAI_REPETITION_PENALTY=1.1,
+    )
+    payload = build_chat_model(settings)._get_request_payload([HumanMessage("hi")])
+    assert payload["top_p"] == 0.9
+    assert payload["presence_penalty"] == 0.5
+    assert payload["frequency_penalty"] == 0.2
+    assert payload["seed"] == 7
+    assert payload["extra_body"] == {
+        "chat_template_kwargs": {"enable_thinking": False},
+        "top_k": 20,
+        "min_p": 0.05,
+        "repetition_penalty": 1.1,
+    }
+
+
+def test_blank_sampling_settings_send_nothing(settings):
+    payload = build_chat_model(settings)._get_request_payload([HumanMessage("hi")])
+    for name in ("top_p", "presence_penalty", "frequency_penalty", "seed", "extra_body"):
+        assert payload.get(name) is None, name
+    assert request_extra_body(settings) is None
+
+
+def test_vllm_sampling_works_without_the_thinking_switch(make_settings):
+    settings = make_settings(OPENAI_TOP_K=40)
+    assert request_extra_body(settings) == {"top_k": 40}
+
+
+def test_a_keyless_server_gets_the_placeholder_key(make_settings):
+    settings = make_settings(OPENAI_API_KEY="", OPENAI_BASE_URL="http://vllm.internal:8000/v1")
+    assert build_chat_model(settings).openai_api_key.get_secret_value() == PLACEHOLDER_API_KEY
+
+
+@pytest.mark.parametrize(
+    ("model", "applies"),
+    [
+        ("Qwen/Qwen3.5-4B", True),
+        ("qwen3-8b", True),
+        ("google/gemma-3-27b-it", True),
+        ("GEMMA-2-9B", True),
+        ("gemini-3-flash-preview", False),
+        ("meta-llama/Llama-3.1-8B-Instruct", False),
+        ("nvidia/nemotron-3.5-lightning:free", False),
+    ],
+)
+def test_thinking_switch_is_sent_only_to_qwen_and_gemma_models(make_settings, model, applies):
+    settings = make_settings(OPENAI_MODEL=model, OPENAI_ENABLE_THINKING=False)
+    expected = {"chat_template_kwargs": {"enable_thinking": False}} if applies else None
+    assert effective_thinking(settings) is (False if applies else None)
+    assert thinking_extra_body(settings) == expected
+    payload = build_chat_model(settings)._get_request_payload([HumanMessage("hi")])
+    assert payload.get("extra_body") == expected
+
+
+def test_the_model_list_is_configurable(make_settings):
+    nemotron = make_settings(
+        OPENAI_MODEL="nvidia/nemotron-3.5-lightning:free",
+        OPENAI_ENABLE_THINKING=True,
+        OPENAI_THINKING_MODELS="Nemotron, llama",
+    )
+    assert effective_thinking(nemotron) is True
+    everything = make_settings(
+        OPENAI_MODEL="gemini-3-flash-preview",
+        OPENAI_ENABLE_THINKING=True,
+        OPENAI_THINKING_MODELS="*",
+    )
+    assert effective_thinking(everything) is True
+
+
+def test_a_blank_switch_sends_nothing_even_for_qwen(make_settings):
+    settings = make_settings(OPENAI_MODEL="Qwen/Qwen3-8B")
+    assert effective_thinking(settings) is None
+    assert thinking_extra_body(settings) is None
+
+
+def test_an_ignored_switch_is_logged(make_settings, caplog):
+    settings = make_settings(OPENAI_MODEL="gemini-3-flash-preview", OPENAI_ENABLE_THINKING=False)
+    with caplog.at_level(logging.INFO):
+        build_chat_model(settings)
+    assert "OPENAI_ENABLE_THINKING is ignored" in caplog.text
+
+
 def test_service_info_reports_the_thinking_switch(make_settings):
+    info = LLMService(
+        make_settings(OPENAI_MODEL="Qwen/Qwen3-8B", OPENAI_ENABLE_THINKING=False),
+        model=ScriptedChatModel(script=[]),
+    ).info
+    assert info.details["thinking"] is False
+
+
+def test_service_info_reports_no_thinking_for_models_outside_the_list(make_settings):
     info = LLMService(
         make_settings(OPENAI_ENABLE_THINKING=False), model=ScriptedChatModel(script=[])
     ).info
-    assert info.details["thinking"] is False
+    assert info.details["thinking"] is None

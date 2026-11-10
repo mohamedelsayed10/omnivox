@@ -88,6 +88,15 @@ def test_api_keys_and_cors_are_split_on_commas(make_settings):
         {"MIN_ENDPOINTING_DELAY": 5.0, "MAX_ENDPOINTING_DELAY": 1.0},
         {"TRACING_PROVIDER": "langsmith"},
         {"TRACING_PROVIDER": "langfuse"},
+        {"OPENAI_TOP_P": 0.0},
+        {"OPENAI_PRESENCE_PENALTY": 2.5},
+        {"OPENAI_REPETITION_PENALTY": 0},
+        {"OPENAI_TOP_K": 0},
+        {"STT_TEMPERATURE": 1.5},
+        {"TTS_SPEED": 5.0},
+        {"TTS_SAMPLE_RATE": 100},
+        {"EMBEDDING_DIMENSIONS": 0},
+        {"GRAPH_MAX_HISTORY_CHARS": 10},
     ],
 )
 def test_invalid_values_are_rejected(make_settings, overrides):
@@ -102,6 +111,65 @@ def test_missing_required_values_fail_fast_with_the_field_name(monkeypatch):
         Settings(_env_file=None)
     text = str(caught.value)
     assert "OPENAI_API_KEY" in text and "LIVEKIT_API_SECRET" in text
+
+
+def test_llm_key_is_required_only_for_the_default_endpoint(make_settings):
+    with pytest.raises(ValidationError, match="OPENAI_API_KEY"):
+        make_settings(OPENAI_API_KEY="")
+    # The same endpoint without its trailing slash is still the default endpoint.
+    with pytest.raises(ValidationError, match="OPENAI_API_KEY"):
+        make_settings(
+            OPENAI_API_KEY="",
+            OPENAI_BASE_URL="https://generativelanguage.googleapis.com/v1beta/openai",
+        )
+    keyless = make_settings(OPENAI_API_KEY="", OPENAI_BASE_URL="http://vllm.internal:8000/v1")
+    assert keyless.OPENAI_API_KEY.get_secret_value() == ""
+    assert keyless.secret_values().count("") == 0
+
+
+def test_text_settings_decode_newline_tab_and_space_escapes(make_settings):
+    custom = make_settings(
+        EMBEDDING_QUERY_PREFIX="Instruct: find it\\nQuery:",
+        EMBEDDING_DOCUMENT_PREFIX="passage:\\s",
+        AGENT_INSTRUCTIONS="Line one.\\nLine two.",
+        TTS_INSTRUCTIONS="calm\\tslow",
+        STT_PROMPT="Names:\\sAhmed",
+    )
+    assert custom.EMBEDDING_QUERY_PREFIX == "Instruct: find it\nQuery:"
+    assert custom.EMBEDDING_DOCUMENT_PREFIX == "passage: "
+    assert custom.AGENT_INSTRUCTIONS == "Line one.\nLine two."
+    assert custom.TTS_INSTRUCTIONS == "calm\tslow"
+    assert custom.STT_PROMPT == "Names: Ahmed"
+
+
+def test_thinking_model_list_defaults_to_qwen_and_gemma_and_is_parsed(make_settings, monkeypatch):
+    assert make_settings().thinking_models_list == ["qwen", "gemma"]
+    custom = make_settings(OPENAI_THINKING_MODELS=" Qwen , Gemma,,* ")
+    assert custom.thinking_models_list == ["qwen", "gemma", "*"]
+    monkeypatch.setenv("OPENAI_THINKING_MODELS", "")  # blank means unset: the default applies
+    assert Settings(_env_file=None).thinking_models_list == ["qwen", "gemma"]
+
+
+def test_new_model_settings_default_to_unset_or_the_old_behavior(settings):
+    for name in (
+        "OPENAI_TOP_P",
+        "OPENAI_PRESENCE_PENALTY",
+        "OPENAI_FREQUENCY_PENALTY",
+        "OPENAI_SEED",
+        "OPENAI_TOP_K",
+        "OPENAI_MIN_P",
+        "OPENAI_REPETITION_PENALTY",
+        "EMBEDDING_QUERY_PREFIX",
+        "EMBEDDING_DOCUMENT_PREFIX",
+        "EMBEDDING_DIMENSIONS",
+        "STT_PROMPT",
+        "STT_TEMPERATURE",
+        "TTS_INSTRUCTIONS",
+        "GRAPH_MAX_HISTORY_CHARS",
+        "AGENT_INSTRUCTIONS",
+    ):
+        assert getattr(settings, name) is None, name
+    assert (settings.TTS_SAMPLE_RATE, settings.TTS_SPEED) == (24_000, 1.0)
 
 
 def test_blank_environment_values_mean_unset(monkeypatch):

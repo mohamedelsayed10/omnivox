@@ -74,8 +74,8 @@ def secret_values(self) -> list[str]:
 
 ### Three things that look odd but are deliberate
 
-- **Required fields have no default.** `OPENAI_API_KEY` and `LIVEKIT_API_SECRET` fail startup if missing, so a typo cannot produce a half-working service.
-- **Optional features stay optional.** `EMBEDDING_API_KEY` and `ELEVENLABS_API_KEY` may be empty: the API still starts, and the feature that needs them reports `service_not_configured` when used (block [08](08-knowledge-base-rag.md)).
+- **Required fields have no default.** `OPENAI_API_KEY` (for the default Gemini endpoint) and `LIVEKIT_API_SECRET` fail startup if missing, so a typo cannot produce a half-working service. A validator on `OPENAI_API_KEY` looks at `OPENAI_BASE_URL`: with a custom endpoint such as a vLLM server the key may stay blank, and a placeholder key is sent because the OpenAI client refuses an empty one.
+- **Optional features stay optional.** `EMBEDDING_API_KEY` and `ELEVENLABS_API_KEY` may be empty: the API still starts, and the feature that needs them reports `service_not_configured` when used (block [08](08-knowledge-base-rag.md)). The embeddings count as configured without a key when `EMBEDDING_BASE_URL` is not the default Cohere endpoint.
 - **The parity test.** `tests/config/test_settings.py` fails when a `Settings` field is missing from `.env.example` (or the other way round). It also fails if `.env.example` stops being a plain `KEY=VALUE` file, because the same file must work for Pydantic, Docker Compose and systemd, which parse quotes and inline comments differently.
 
 ## 3. Logging, step by step

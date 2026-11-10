@@ -14,7 +14,7 @@ from pydantic import PrivateAttr
 
 from config.logger import get_logger
 from config.settings import Settings
-from src.ai_models.base import AIModel, ModelInfo, classify_provider_error
+from src.ai_models.base import PLACEHOLDER_API_KEY, AIModel, ModelInfo, classify_provider_error
 from src.utils.exceptions import (
     InvalidInputError,
     LLMError,
@@ -72,21 +72,55 @@ class GeminiChatOpenAI(ChatOpenAI):
                         self._signatures.popitem(last=False)
 
 
+def effective_thinking(settings: Settings) -> bool | None:
+    """The thinking switch for the configured model, or ``None`` when nothing should be sent.
+
+    The switch applies only to models whose name contains one of the fragments in
+    ``OPENAI_THINKING_MODELS`` (default ``qwen,gemma``, compared case-insensitively; ``*`` means
+    every model). Other models, Gemini for example, never receive the parameter.
+    """
+    thinking = settings.OPENAI_ENABLE_THINKING
+    if thinking is None:
+        return None
+    fragments = settings.thinking_models_list
+    name = settings.OPENAI_MODEL.lower()
+    if "*" in fragments or any(fragment in name for fragment in fragments):
+        return thinking
+    return None
+
+
 def thinking_extra_body(settings: Settings) -> dict[str, Any] | None:
     """``extra_body`` that switches thinking on or off.
 
     Qwen, Gemma and similar models served by vLLM read ``enable_thinking`` from
     ``chat_template_kwargs``. OpenRouter does not forward that field for every model; it has its
     own ``reasoning`` parameter, which is added when the endpoint is OpenRouter. ``None`` (setting
-    left blank) sends nothing and the model default applies.
+    left blank, or a model outside ``OPENAI_THINKING_MODELS``) sends nothing and the model default
+    applies.
     """
-    thinking = settings.OPENAI_ENABLE_THINKING
+    thinking = effective_thinking(settings)
     if thinking is None:
         return None
     body: dict[str, Any] = {"chat_template_kwargs": {"enable_thinking": thinking}}
     if OPENROUTER_HOST_MARKER in settings.OPENAI_BASE_URL:
         body["reasoning"] = {"enabled": thinking}
     return body
+
+
+def request_extra_body(settings: Settings) -> dict[str, Any] | None:
+    """Everything the OpenAI schema has no field for: the thinking switch and vLLM sampling.
+
+    ``top_k``, ``min_p`` and ``repetition_penalty`` are vLLM extensions of the chat API, so they
+    travel in ``extra_body``; each is sent only when its setting is not blank.
+    """
+    body = dict(thinking_extra_body(settings) or {})
+    extras = {
+        "top_k": settings.OPENAI_TOP_K,
+        "min_p": settings.OPENAI_MIN_P,
+        "repetition_penalty": settings.OPENAI_REPETITION_PENALTY,
+    }
+    body.update({name: value for name, value in extras.items() if value is not None})
+    return body or None
 
 
 def build_chat_model(settings: Settings) -> ChatOpenAI:
@@ -96,17 +130,27 @@ def build_chat_model(settings: Settings) -> ChatOpenAI:
     connections belong to the first event loop, which breaks when another loop (a later voice
     session) uses it.
     """
+    if settings.OPENAI_ENABLE_THINKING is not None and effective_thinking(settings) is None:
+        logger.info(
+            "OPENAI_ENABLE_THINKING is ignored: %s is not matched by OPENAI_THINKING_MODELS (%s)",
+            settings.OPENAI_MODEL,
+            settings.OPENAI_THINKING_MODELS,
+        )
     client_class = (
         GeminiChatOpenAI if GEMINI_HOST_MARKER in settings.OPENAI_BASE_URL else ChatOpenAI
     )
     return client_class(
         model=settings.OPENAI_MODEL,
-        api_key=settings.OPENAI_API_KEY,
+        api_key=settings.OPENAI_API_KEY.get_secret_value() or PLACEHOLDER_API_KEY,
         base_url=settings.OPENAI_BASE_URL,
         temperature=settings.OPENAI_TEMPERATURE,
         max_tokens=settings.OPENAI_MAX_TOKENS,
+        top_p=settings.OPENAI_TOP_P,
+        presence_penalty=settings.OPENAI_PRESENCE_PENALTY,
+        frequency_penalty=settings.OPENAI_FREQUENCY_PENALTY,
+        seed=settings.OPENAI_SEED,
         reasoning_effort=settings.OPENAI_REASONING_EFFORT,
-        extra_body=thinking_extra_body(settings),
+        extra_body=request_extra_body(settings),
         timeout=settings.REQUEST_TIMEOUT,
         max_retries=settings.MAX_RETRIES,
         streaming=True,
@@ -149,7 +193,7 @@ class LLMService(AIModel):
             details={
                 "host": host,
                 "reasoning_effort": self._settings.OPENAI_REASONING_EFFORT,
-                "thinking": self._settings.OPENAI_ENABLE_THINKING,
+                "thinking": effective_thinking(self._settings),
             },
         )
 

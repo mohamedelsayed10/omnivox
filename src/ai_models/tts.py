@@ -3,12 +3,16 @@
 from urllib.parse import urlparse
 
 from livekit.agents import tts
+from livekit.agents.types import NOT_GIVEN
 from livekit.plugins import elevenlabs, openai
+from openai import omit
 
 from config.settings import Settings
-from src.ai_models.asr import PLACEHOLDER_API_KEY
-from src.ai_models.base import AIModel, ModelInfo
+from src.ai_models.base import PLACEHOLDER_API_KEY, AIModel, ModelInfo
 from src.utils.exceptions import ConfigurationError
+
+# TTS_VOICE value for OpenAI-format servers that have a default voice and reject any voice name.
+NO_VOICE = "none"
 
 
 class TextToSpeech(AIModel):
@@ -45,9 +49,17 @@ class TextToSpeech(AIModel):
         key = (
             settings.TTS_API_KEY.get_secret_value() if settings.TTS_API_KEY else PLACEHOLDER_API_KEY
         )
-        return openai.TTS(
+        plugin = openai.TTS(
             model=settings.TTS_MODEL,
             voice=settings.TTS_VOICE,
             base_url=settings.TTS_BASE_URL,
             api_key=key,
+            response_format=settings.TTS_RESPONSE_FORMAT or NOT_GIVEN,
+            sample_rate=settings.TTS_SAMPLE_RATE,
+            speed=settings.TTS_SPEED,
+            instructions=settings.TTS_INSTRUCTIONS or NOT_GIVEN,
         )
+        if settings.TTS_VOICE.lower() == NO_VOICE:
+            # The plugin always sends a voice; the SDK drops an ``omit`` value from the request.
+            plugin.update_options(voice=omit)
+        return plugin

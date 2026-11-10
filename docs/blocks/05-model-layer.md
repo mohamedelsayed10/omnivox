@@ -222,7 +222,7 @@ async def dimension(self) -> int:
     return self._dimension
 ```
 
-A missing `EMBEDDING_API_KEY` raises `ConfigurationError` only when embeddings are actually used, so the API starts without it.
+A missing `EMBEDDING_API_KEY` raises `ConfigurationError` only when embeddings are actually used, so the API starts without it. With a custom `EMBEDDING_BASE_URL` (a self-hosted server) no key is needed and a placeholder is sent. `EMBEDDING_QUERY_PREFIX` and `EMBEDDING_DOCUMENT_PREFIX` are added in `EmbeddingService`, so the retriever and the ingest path stay unchanged.
 
 ## 5. Speech and turn-taking wrappers
 

@@ -2,6 +2,7 @@
 
 import pytest
 
+from src.ai_models.base import PLACEHOLDER_API_KEY
 from src.ai_models.embeddings import EmbeddingService, build_embeddings
 from src.utils.exceptions import ConfigurationError, ExternalServiceError
 from tests.fakes import EMBEDDING_DIMENSION, DeterministicEmbeddings
@@ -63,6 +64,48 @@ def test_client_uses_the_openai_compatible_endpoint(settings):
     assert client.check_embedding_ctx_length is False
     assert client.chunk_size == settings.EMBEDDING_BATCH_SIZE
     assert client.dimensions is None
+
+
+async def test_prefixes_go_in_front_of_queries_and_documents(make_settings):
+    fake = DeterministicEmbeddings()
+    settings = make_settings(
+        EMBEDDING_QUERY_PREFIX="query: ", EMBEDDING_DOCUMENT_PREFIX="passage: "
+    )
+    service = EmbeddingService(settings, embeddings=fake)
+    await service.aembed_query("hello")
+    await service.aembed_documents(["alpha", "beta"])
+    assert fake.queries == ["query: hello"]
+    assert [text for batch in fake.batches for text in batch] == ["passage: alpha", "passage: beta"]
+
+
+async def test_without_prefixes_texts_are_sent_unchanged(settings):
+    fake = DeterministicEmbeddings()
+    service = EmbeddingService(settings, embeddings=fake)
+    await service.aembed_query("hello")
+    await service.aembed_documents(["alpha"])
+    assert fake.queries == ["hello"]
+    assert fake.batches == [["alpha"]]
+
+
+def test_a_custom_endpoint_needs_no_key(make_settings):
+    settings = make_settings(
+        EMBEDDING_API_KEY=None, EMBEDDING_BASE_URL="http://vllm.internal:8001/v1"
+    )
+    assert EmbeddingService(settings).configured is True
+    assert build_embeddings(settings).openai_api_key.get_secret_value() == PLACEHOLDER_API_KEY
+
+
+def test_the_default_endpoint_still_needs_a_key_even_with_a_trailing_slash(make_settings):
+    settings = make_settings(
+        EMBEDDING_API_KEY=None, EMBEDDING_BASE_URL="https://api.cohere.ai/compatibility/v1/"
+    )
+    assert EmbeddingService(settings).configured is False
+    with pytest.raises(ConfigurationError):
+        build_embeddings(settings)
+
+
+def test_dimensions_setting_reaches_the_client(make_settings):
+    assert build_embeddings(make_settings(EMBEDDING_DIMENSIONS=512)).dimensions == 512
 
 
 def test_info_names_the_host_not_the_key(settings):

@@ -7,11 +7,8 @@ from livekit.agents.types import NOT_GIVEN
 from livekit.plugins import elevenlabs, openai
 
 from config.settings import Settings
-from src.ai_models.base import AIModel, ModelInfo
+from src.ai_models.base import PLACEHOLDER_API_KEY, AIModel, ModelInfo
 from src.utils.exceptions import ConfigurationError
-
-# OpenAI clients refuse an empty key, while self-hosted servers such as vLLM ignore it.
-PLACEHOLDER_API_KEY = "EMPTY"
 
 
 class SpeechToText(AIModel):
@@ -54,4 +51,6 @@ class SpeechToText(AIModel):
             api_key=key,
             language=settings.STT_LANGUAGE or "en",
             detect_language=not settings.STT_LANGUAGE,
+            prompt=settings.STT_PROMPT or NOT_GIVEN,
+            temperature=NOT_GIVEN if settings.STT_TEMPERATURE is None else settings.STT_TEMPERATURE,
         )

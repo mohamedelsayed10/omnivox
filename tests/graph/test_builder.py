@@ -88,6 +88,43 @@ async def test_small_window_never_drops_the_current_turn(make_settings):
     assert [m.content for m in sent] == ["question", "", "result"]
 
 
+async def test_history_character_cap_drops_old_turns_that_do_not_fit(make_settings):
+    settings = make_settings(GRAPH_MAX_HISTORY_CHARS=500)
+    runtime = build_runtime(settings, [ai("ok")])
+    history = [HumanMessage("a" * 400), AIMessage("b" * 400), HumanMessage("short")]
+    await runtime.build_graph().ainvoke({"messages": history}, run_config(runtime))
+    sent = [m for m in runtime.llm.get_model().seen[0] if not isinstance(m, SystemMessage)]
+    assert [m.content for m in sent] == ["short"]
+
+
+async def test_history_character_cap_keeps_what_fits(make_settings):
+    settings = make_settings(GRAPH_MAX_HISTORY_CHARS=500)
+    runtime = build_runtime(settings, [ai("ok")])
+    history = [HumanMessage("a" * 400), AIMessage("b" * 10), HumanMessage("c" * 10)]
+    await runtime.build_graph().ainvoke({"messages": history}, run_config(runtime))
+    sent = [m for m in runtime.llm.get_model().seen[0] if not isinstance(m, SystemMessage)]
+    assert [len(m.content) for m in sent] == [400, 10, 10]
+
+
+async def test_history_character_cap_never_drops_the_current_turn(make_settings):
+    settings = make_settings(GRAPH_MAX_HISTORY_CHARS=500)
+    runtime = build_runtime(settings, [ai("ok")])
+    history = [HumanMessage("old"), AIMessage("reply"), HumanMessage("q" * 900)]
+    await runtime.build_graph().ainvoke({"messages": history}, run_config(runtime))
+    sent = [m for m in runtime.llm.get_model().seen[0] if not isinstance(m, SystemMessage)]
+    assert [len(m.content) for m in sent] == [900]
+
+
+async def test_agent_instructions_are_appended_to_the_system_prompt(make_settings):
+    settings = make_settings(AGENT_INSTRUCTIONS="Always answer in Arabic.\nKeep it short.")
+    runtime = build_runtime(settings, [ai("ok")])
+    await runtime.build_graph().ainvoke({"messages": [HumanMessage("hi")]}, run_config(runtime))
+    system = [m for m in runtime.llm.get_model().seen[0] if isinstance(m, SystemMessage)]
+    assert len(system) == 1
+    assert "OmniVox" in system[0].content
+    assert system[0].content.endswith("Always answer in Arabic.\nKeep it short.")
+
+
 async def test_unknown_tool_and_tool_failure_become_error_messages(settings):
     script = [
         ai("", ("delete_everything", {"x": 1}), ("web_search", {"query": "q"})),
